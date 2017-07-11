@@ -3,6 +3,8 @@
 HyperVis is a Python tool that visualizes circles in hyperbolic space using its
 native representation.
 
+![Screenshot](screenshot.png)
+
 # Installation
 1. Make sure you have Python 3 installed
 1. Install [Tk](http://www.tkdocs.com/tutorial/install.html) if not installed already.
@@ -25,6 +27,3 @@ Launch the tool by calling `python3 HyperVis.py`
 
 # Known Issues
 * Tk does not seem to recognize mouse scroll events in macOS High Sierra
-
-# Screenshot
-![Screenshot](screenshot.png)
