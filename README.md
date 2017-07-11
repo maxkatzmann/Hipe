@@ -3,7 +3,7 @@
 HyperVis is a Python tool that visualizes circles in hyperbolic space using its
 native representation.
 
-![Screenshot](screenshot.png)
+![Screenshot](screen.png)
 
 # Installation
 1. Make sure you have Python 3 installed
