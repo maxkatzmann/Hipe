@@ -120,7 +120,7 @@ def redraw(canvas):
     draw_circle(canvas, center, 2.0, 0.0, 2.0 * math.pi, True, "blue")
 
     scale = 50.0
-    render_detail = 180
+    render_detail = 360
     render_detail_half = render_detail / 2
 
     for index, point in enumerate(points):
