@@ -245,12 +245,14 @@ canvas.bind("<Button-5>", mouse_scroll_down)
 root.bind("<BackSpace>", delete_pressed)
 root.bind("<MouseWheel>", mouse_scrolled)
 root.bind("c", c_pressed)
+root.bind("+", mouse_scroll_up)
+root.bind("-", mouse_scroll_down)
 
 message = Label(canvas, text = "Right Click adds a point and circle, Left Click " +\
     "selects a point, Back Space deletes the selected point.\nThe radius of a " +\
-    "selected circle can be changed using the mouse wheel.\nNew circles are black " +\
-    "and will have the same radius as the last one that was edited.\nYou can cycle " +\
-    "through the colors [Black, Green, Red, Blue, Orange and Magenta]\nof the " +\
+    "selected circle can be changed using the mouse wheel or the '+' and '-' buttons.\n" +\
+    "New circles are black and will have the same radius as the last one that was edited.\n" +\
+    "You can cycle through the colors [Black, Green, Red, Blue, Orange and Magenta]\nof the " +\
     "selected circle using the 'C' key.")
 message.pack(side = TOP)
 
