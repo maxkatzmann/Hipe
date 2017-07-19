@@ -314,7 +314,7 @@ def mouse_scrolled_with_delta(delta):
                 current_circle_size = 0.1
 
             circle_sizes[selected_node] = current_circle_size
-            redraw(canvas)
+    redraw(canvas)
 
 def mouse_scrolled(event):
     mouse_scrolled_with_delta(event.delta)
@@ -382,10 +382,11 @@ def e_pressed(event):
 canvas.bind("<Configure>", resize)
 canvas.bind("<Button-1>", mouse_pressed)
 canvas.bind("<Shift-Button-1>", shift_mouse_pressed)
-canvas.bind("<Shift-Button-2>", shift_right_mouse_pressed)
 canvas.bind("<B1-Motion>", mouse_dragged)
 canvas.bind("<Button-2>", right_mouse_pressed)
+canvas.bind("<Shift-Button-2>", shift_right_mouse_pressed)
 canvas.bind("<Button-3>", right_mouse_pressed)
+canvas.bind("<Shift-Button-3>", shift_right_mouse_pressed)
 canvas.bind("<Button-4>", mouse_scroll_up)
 canvas.bind("<Button-5>", mouse_scroll_down)
 root.bind("<BackSpace>", delete_pressed)
