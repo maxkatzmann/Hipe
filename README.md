@@ -1,9 +1,9 @@
 ## HyperVis
 
-HyperVis is a Python tool that visualizes circles in hyperbolic space using its
+HyperVis is a Python tool that visualizes circles and lines in hyperbolic space using its
 native representation.
 
-![Screenshot](screen.png)
+![Screenshot](screenshot.png)
 
 # Installation
 1. Make sure you have Python 3 installed
@@ -15,15 +15,20 @@ Launch the tool by calling `python3 HyperVis.py`
 
 # Controls
 * `Right Click` adds a circle centered at the current location of the mouse
+* `Shift Right Click` adds a point without a circle
 * `Left Click` on a point selects the point and the circle that it is centered in
+* `Shift Left Click` adds to selection
 * `Mouse Drag` moves the circle on the plane
 * `BackSpace` deletes a selected point
-* `Mouse Wheel` changes the size of the selected circle
+* `Mouse Wheel` or `+` or `-` changes the size of the selected circle
+* `O` adds a circle centered at the origin
+* `E` adds an edge between all selected points
 * `C` cycles through the colors of the selected circle `[Black, Green, Red, Blue, Orange and Magenta]`
 
 # Notes
 * The blue point at the center represents the origin of the hyperbolic plane
 * New circles are black and have the same size as the last circle that was edited
+* Trying to add an edge between two already connected points will remove the edge
 
 # Known Issues
 * Tk does not seem to recognize mouse scroll events in macOS High Sierra
