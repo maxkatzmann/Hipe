@@ -125,8 +125,12 @@ def draw_edge_from_coordinate_to_coordinate(canvas, coord1, coord2, color):
         line_points = []
         for i in range(0, render_detail):
             partial_distance = distance * (i / float(render_detail))
-            r = math.acosh((math.cosh(native_point2.r) * math.cosh(partial_distance) - (math.sinh(native_point2.r) * math.sinh(partial_distance) * cos_gamma_2)))
-            gamma_prime = 0.0
+            r = 0.0
+            try:
+                r = math.acosh((math.cosh(native_point2.r) * math.cosh(partial_distance) - (math.sinh(native_point2.r) * math.sinh(partial_distance) * cos_gamma_2)))
+            except (ZeroDivisionError, ValueError):
+                pass
+                gamma_prime = 0.0
             try:
                 gamma_prime = math.acos(((math.cosh(r) * math.cosh(native_point2.r)) - math.cosh(partial_distance)) / (math.sinh(r) * math.sinh(native_point2.r)))
             except (ZeroDivisionError, ValueError):
@@ -200,7 +204,7 @@ def redraw(canvas):
             native_point = relative_point.to_native_coordinate_with_scale(scale)
             native_point.phi += math.pi
 
-            additional_render_detail = 4 * math.floor(native_point.r)
+            additional_render_detail = 8 * math.floor(native_point.r)
             angular_point_distance = 2.0 * math.pi / render_detail
 
             circle_points = []
