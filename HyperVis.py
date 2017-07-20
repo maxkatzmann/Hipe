@@ -22,6 +22,7 @@ import math
 import sys
 import native_coordinates
 import euclidean_coordinates
+from subprocess import call
 
 # Creating the widget
 root = Tk()
@@ -235,7 +236,7 @@ def print_edge(coord1, coord2, color):
                 r = math.acosh((math.cosh(native_point2.r) * math.cosh(partial_distance) - (math.sinh(native_point2.r) * math.sinh(partial_distance) * cos_gamma_2)))
             except (ZeroDivisionError, ValueError):
                 pass
-                gamma_prime = 0.0
+            gamma_prime = 0.0
             try:
                 gamma_prime = math.acos(((math.cosh(r) * math.cosh(native_point2.r)) - math.cosh(partial_distance)) / (math.sinh(r) * math.sinh(native_point2.r)))
             except (ZeroDivisionError, ValueError):
@@ -692,11 +693,25 @@ def e_pressed(event):
                 edges.append(edge)
     redraw(canvas)
 
-def p_pressed(event):
+def s_pressed(event):
+    call(["mkdir", "-p", "output"])
+    old_stdout = sys.stdout
+    import datetime
+    filename = './output/' + str(datetime.datetime.now()) + '.svg'
+    sys.stdout = open(filename, "w")
     print_svg()
+    sys.stdout = old_stdout
+    print("Drawing saved as " + filename)
 
 def i_pressed(event):
+    call(["mkdir", "-p", "output"])
+    old_stdout = sys.stdout
+    import datetime
+    filename = './output/' + str(datetime.datetime.now()) + '.ipe'
+    sys.stdout = open(filename, "w")
     print_ipe()
+    sys.stdout = old_stdout
+    print("Drawing saved as " + filename)
 
 canvas.bind("<Configure>", resize)
 canvas.bind("<Button-1>", mouse_pressed)
@@ -713,7 +728,7 @@ root.bind("<MouseWheel>", mouse_scrolled)
 root.bind("c", c_pressed)
 root.bind("o", o_pressed)
 root.bind("e", e_pressed)
-root.bind("p", p_pressed)
+root.bind("s", s_pressed)
 root.bind("i", i_pressed)
 root.bind("+", mouse_scroll_up)
 root.bind("-", mouse_scroll_down)
