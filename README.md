@@ -23,6 +23,7 @@ Launch the tool by calling `python3 HyperVis.py`
 * `Mouse Wheel` or `+` or `-` changes the size of the selected circle
 * `O` adds a circle centered at the origin
 * `E` adds an edge between all selected points
+* `R` sets the radius of all selected points to the one of the first selected point
 * `C` cycles through the colors of the selected circle `[Black, Green, Red, Blue, Orange and Magenta]`
 * `S` prints the drawing as SVG 
 * `I` prints the drawing as Ipe 
@@ -30,7 +31,7 @@ Launch the tool by calling `python3 HyperVis.py`
 # Notes
 * The blue point at the center represents the origin of the hyperbolic plane
 * New circles are black and have the same size as the last circle that was edited
-* Trying to add an edge between two already connected points will remove the edge
+* Trying to add an edge between two already connected points wil
 * When using `S` or `I` a folder called `output` will be created where HyperVis was launched. The drawing will be saved as SVG or Ipe file using the current timestamp as filename.
 
 # Known Issues

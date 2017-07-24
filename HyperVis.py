@@ -103,11 +103,9 @@ def draw_edge_from_coordinate_to_coordinate(canvas, coord1, coord2, color):
     else:
         relative_point1 = euclidean_coordinates.coordinate_relative_to_coordinate(coord1, center)
         native_point1 = relative_point1.to_native_coordinate_with_scale(scale)
-        native_point1.phi += math.pi
 
         relative_point2 = euclidean_coordinates.coordinate_relative_to_coordinate(coord2, center)
         native_point2 = relative_point2.to_native_coordinate_with_scale(scale)
-        native_point2.phi += math.pi
 
         angular_distance = native_point2.phi - native_point1.phi
         if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
@@ -208,11 +206,9 @@ def print_edge(coord1, coord2, color):
     else:
         relative_point1 = euclidean_coordinates.coordinate_relative_to_coordinate(coord1, center)
         native_point1 = relative_point1.to_native_coordinate_with_scale(scale)
-        native_point1.phi += math.pi
 
         relative_point2 = euclidean_coordinates.coordinate_relative_to_coordinate(coord2, center)
         native_point2 = relative_point2.to_native_coordinate_with_scale(scale)
-        native_point2.phi += math.pi
 
         angular_distance = native_point2.phi - native_point1.phi
         if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
@@ -269,11 +265,9 @@ def print_ipe_edge(coord1, coord2, color):
     else:
         relative_point1 = euclidean_coordinates.coordinate_relative_to_coordinate(coord1, center)
         native_point1 = relative_point1.to_native_coordinate_with_scale(scale)
-        native_point1.phi += math.pi
 
         relative_point2 = euclidean_coordinates.coordinate_relative_to_coordinate(coord2, center)
         native_point2 = relative_point2.to_native_coordinate_with_scale(scale)
-        native_point2.phi += math.pi
 
         angular_distance = native_point2.phi - native_point1.phi
         if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
@@ -356,7 +350,6 @@ def print_ipe():
             circle_size = circle_sizes[index]
             relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
             native_point = relative_point.to_native_coordinate_with_scale(scale)
-            native_point.phi += math.pi
 
             additional_render_detail = 8 * math.floor(native_point.r)
             angular_point_distance = 2.0 * math.pi / render_detail
@@ -388,7 +381,6 @@ def print_ipe():
         else:
             relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
             native_point = relative_point.to_native_coordinate_with_scale(scale)
-            native_point.phi += math.pi
 
             if index in selected_nodes:
                 print_ipe_circle(point, 2.0, True, "black")
@@ -438,7 +430,6 @@ def print_svg():
             circle_size = circle_sizes[index]
             relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
             native_point = relative_point.to_native_coordinate_with_scale(scale)
-            native_point.phi += math.pi
 
             additional_render_detail = 8 * math.floor(native_point.r)
             angular_point_distance = 2.0 * math.pi / render_detail
@@ -470,7 +461,6 @@ def print_svg():
         else:
             relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
             native_point = relative_point.to_native_coordinate_with_scale(scale)
-            native_point.phi += math.pi
 
             if index in selected_nodes:
                 print_circle(point, 2.0, True, "red")
@@ -512,7 +502,6 @@ def redraw(canvas):
             circle_size = circle_sizes[index]
             relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
             native_point = relative_point.to_native_coordinate_with_scale(scale)
-            native_point.phi += math.pi
 
             additional_render_detail = 8 * math.floor(native_point.r)
             angular_point_distance = 2.0 * math.pi / render_detail
@@ -544,7 +533,6 @@ def redraw(canvas):
         else:
             relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
             native_point = relative_point.to_native_coordinate_with_scale(scale)
-            native_point.phi += math.pi
 
             if index in selected_nodes:
                 draw_circle(canvas, point, 2.0, 0.0, 2.0 * math.pi, True, "red")
@@ -693,6 +681,27 @@ def e_pressed(event):
                 edges.append(edge)
     redraw(canvas)
 
+def r_pressed(event):
+    global selected_nodes
+    if len(selected_nodes) > 1:
+        center = euclidean_coordinates.EuclideanCoordinate(\
+                                                           canvas.winfo_width() / 2.0, \
+                                                           canvas.winfo_height() / 2.0)
+        reference_point = points[selected_nodes[0]]
+        relative_reference_point = euclidean_coordinates.coordinate_relative_to_coordinate(reference_point, center)
+        native_reference_point = relative_reference_point.to_native_coordinate_with_scale(1.0)
+        reference_radius = native_reference_point.r
+        for i in range(1, len(selected_nodes)):
+            original_point = points[selected_nodes[i]]
+            relative_original_point = euclidean_coordinates.coordinate_relative_to_coordinate(original_point, center)
+            native_original_point = relative_original_point.to_native_coordinate_with_scale(1.0)
+            native_original_point.r = reference_radius
+            relative_modified_point = native_original_point.to_euclidean_coordinate_with_scale(1.0)
+            modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, relative_modified_point)
+            points[selected_nodes[i]] = modified_point
+
+        redraw(canvas)
+
 def s_pressed(event):
     call(["mkdir", "-p", "output"])
     old_stdout = sys.stdout
@@ -730,6 +739,7 @@ root.bind("o", o_pressed)
 root.bind("e", e_pressed)
 root.bind("s", s_pressed)
 root.bind("i", i_pressed)
+root.bind("r", r_pressed)
 root.bind("+", mouse_scroll_up)
 root.bind("-", mouse_scroll_down)
 
@@ -740,6 +750,7 @@ message = Label(canvas, text = \
                 "Shift Left Click: Add to selection \n" +\
                 "O: Add circle around the oririn \n" +\
                 "E: Add an edge between all selected nodes \n" +\
+                "R: Set radii of selected points to the one of the first seleced \n" +\
                 "Back Space: Delete selected point \n" +\
                 "MouseWheel / '+' / '-': Change Circle Radius \n" +\
                 "C: Cycle through the colors [Black, Green, Red, Blue, Orange and Magenta]\n" +\

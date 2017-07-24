@@ -29,8 +29,8 @@ class EuclideanCoordinate(object):
 
     def to_native_coordinate_with_scale(self, scale):
         return native_coordinates.PolarCoordinate(\
-        math.sqrt(self.x / scale * self.x / scale + self.y / scale * self.y / scale), \
-        math.atan2(self.y / scale, self.x / scale))
+                                                  math.sqrt(self.x / scale * self.x / scale + self.y / scale * self.y / scale), \
+                                                  math.atan2(self.y / scale, self.x / scale) + math.pi)
 
     def to_native_coordinate(self):
         return to_native_coordinate_with_scale(1.0)
