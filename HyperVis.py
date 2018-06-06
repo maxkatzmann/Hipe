@@ -803,7 +803,8 @@ def s_pressed(event):
     sys.stdout = open(filename, "w")
     print_svg()
     sys.stdout = old_stdout
-    print("Drawing saved as " + filename)
+    global status_label
+    status_label["text"] = "Drawing saved as " + filename
 
 def i_pressed(event):
     call(["mkdir", "-p", "output"])
@@ -813,7 +814,8 @@ def i_pressed(event):
     sys.stdout = open(filename, "w")
     print_ipe()
     sys.stdout = old_stdout
-    print("Drawing saved as " + filename)
+    global status_label
+    status_label["text"] = "Drawing saved as " + filename
 
 canvas.bind("<Configure>", resize)
 canvas.bind("<Button-1>", mouse_pressed)
