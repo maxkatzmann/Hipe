@@ -27,6 +27,7 @@ Launch the tool by calling `python3 HyperVis.py`
 * `C` cycles through the colors of the selected circle `[Black, Green, Red, Blue, Orange and Magenta]`
 * `S` prints the drawing as SVG 
 * `I` prints the drawing as Ipe 
+* `D` Delete everything
 
 # Notes
 * The blue point at the center represents the origin of the hyperbolic plane

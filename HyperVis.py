@@ -1,18 +1,18 @@
 # This program visualizes hyperbolic circles using the native representation.
-# Copyright (C) 2017    Maximilian Katzmann
+# Copyright (C) 2018    Maximilian Katzmann
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # You can contact the author via email: max.katzmann@gmail.com
 
@@ -92,7 +92,7 @@ def draw_circle(canvas, center, radius, start_angle, end_angle, is_clockwise, fi
                 extent = math.degrees(end_angle - start_angle))
 
 def draw_edge_from_coordinate_to_coordinate(canvas, coord1, coord2, color):
-    scale = 50.0
+    global scale
     render_detail = 100
     center = euclidean_coordinates.EuclideanCoordinate(\
         canvas.winfo_width() / 2.0, \
@@ -116,7 +116,7 @@ def draw_edge_from_coordinate_to_coordinate(canvas, coord1, coord2, color):
         distance = native_coordinates.distance_between(native_point1, native_point2)
 
         cos_gamma_2 = 0.0
-        try: 
+        try:
             cos_gamma_2 = (((math.cosh(native_point2.r) * math.cosh(distance)) - math.cosh(native_point1.r)) / (math.sinh(native_point2.r) * math.sinh(distance)))
         except (ZeroDivisionError, ValueError):
             pass
@@ -170,8 +170,10 @@ circle_sizes = []
 circle_colors = []
 selected_nodes = []
 is_circle_node = []
-current_circle_size = 5.0
+current_circle_size = 10.0
 colors = ["black", "red", "green", "blue", "orange", "magenta"];
+
+scale = 35.0
 
 def print_circle(center, radius, filled, color):
     if filled:
@@ -195,7 +197,7 @@ def print_ipe_line(coord1, coord2, color):
           "</path>")
 
 def print_edge(coord1, coord2, color):
-    scale = 50.0
+    global scale
     render_detail = 100
     center = euclidean_coordinates.EuclideanCoordinate(\
         canvas.winfo_width() / 2.0, \
@@ -254,7 +256,7 @@ def print_edge(coord1, coord2, color):
             print_line(line_points[render_detail - 1], coord1, color)
 
 def print_ipe_edge(coord1, coord2, color):
-    scale = 50.0
+    global scale
     render_detail = 100
     center = euclidean_coordinates.EuclideanCoordinate(\
         canvas.winfo_width() / 2.0, \
@@ -319,6 +321,7 @@ def print_ipe():
     global circle_colors
     global selected_nodes
     global is_circle_node
+    global scale
 
     print("<?xml version=\"1.0\"?>\n" +\
           "<!DOCTYPE ipe SYSTEM \"ipe.dtd\">\n" +\
@@ -336,7 +339,6 @@ def print_ipe():
 
     print_ipe_circle(center, 2.0, True, "black")
 
-    scale = 50.0
     render_detail = 360
     render_detail_half = render_detail / 2
 
@@ -401,6 +403,7 @@ def print_svg():
     global circle_colors
     global selected_nodes
     global is_circle_node
+    global scale
 
     print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE svg PUBLIC " +\
           "\"-//W3C//DTD SVG 1.1//EN\" " +\
@@ -416,7 +419,6 @@ def print_svg():
 
     print_circle(center, 2.0, True, "blue")
 
-    scale = 50.0
     render_detail = 360
     render_detail_half = render_detail / 2
 
@@ -473,6 +475,14 @@ def print_svg():
 
     print("\n</svg>\n")
 
+def hyperbolic_coordinate_from_canvas_point(canvas, point):
+    global scale
+    center = euclidean_coordinates.EuclideanCoordinate(\
+        canvas.winfo_width() / 2.0, \
+        canvas.winfo_height() / 2.0)
+    relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
+    native_point = relative_point.to_native_coordinate_with_scale(scale)
+    return native_point
 
 def redraw(canvas):
     global points
@@ -481,6 +491,7 @@ def redraw(canvas):
     global circle_colors
     global selected_nodes
     global is_circle_node
+    global scale
     canvas.delete("all")
     center = euclidean_coordinates.EuclideanCoordinate(\
         canvas.winfo_width() / 2.0, \
@@ -488,7 +499,6 @@ def redraw(canvas):
 
     draw_circle(canvas, center, 2.0, 0.0, 2.0 * math.pi, True, "blue")
 
-    scale = 50.0
     render_detail = 360
     render_detail_half = render_detail / 2
 
@@ -500,22 +510,40 @@ def redraw(canvas):
                 draw_circle(canvas, point, 2.0, 0.0, 2.0 * math.pi, True, "black")
 
             circle_size = circle_sizes[index]
-            relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
-            native_point = relative_point.to_native_coordinate_with_scale(scale)
+            native_point = hyperbolic_coordinate_from_canvas_point(canvas, point)
 
-            additional_render_detail = 8 * math.floor(native_point.r)
+            additional_render_detail = math.floor(native_point.r * native_point.r)
+            render_detail_factor = 0
+            if native_point.r > 0:
+                render_detail_factor = min(1.0, 0.75 * scale / (native_point.r * native_point.r))
             angular_point_distance = 2.0 * math.pi / render_detail
+
+            # is_additional = []
 
             circle_points = []
             for i in range(render_detail):
                 native_circle_point = native_coordinates.PolarCoordinate(circle_size, i * angular_point_distance)
                 circle_points.append(native_circle_point)
+                # is_additional.append("red")
 
-                if abs(i - render_detail_half) < (additional_render_detail / 2):
+                if i == render_detail_half:
                     for j in range(additional_render_detail):
                         native_circle_point = native_coordinates.PolarCoordinate(circle_size, \
-                        i * angular_point_distance + j * (angular_point_distance / additional_render_detail))
+                        i * angular_point_distance + j * (render_detail_factor * angular_point_distance / additional_render_detail))
                         circle_points.append(native_circle_point)
+                        # is_additional.append("blue")
+                elif i == render_detail_half - 1:
+                    for j in range(additional_render_detail):
+                        native_circle_point = native_coordinates.PolarCoordinate(circle_size, \
+                        (i + (1.0 - render_detail_factor)) * angular_point_distance + j * (render_detail_factor * angular_point_distance / additional_render_detail))
+                        circle_points.append(native_circle_point)
+                        # is_additional.append("blue")
+                elif abs(i - render_detail_half) <= 7 * render_detail_factor - 4:
+                    for j in range(math.floor(additional_render_detail * render_detail_factor * render_detail_factor)):
+                        native_circle_point = native_coordinates.PolarCoordinate(circle_size, \
+                        i * angular_point_distance + j * (angular_point_distance / (additional_render_detail * render_detail_factor * render_detail_factor)))
+                        circle_points.append(native_circle_point)
+                        # is_additional.append("green")
 
             for i in range(len(circle_points)):
                 native_circle_point = circle_points[i]
@@ -525,6 +553,7 @@ def redraw(canvas):
                 euclidean_circle_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_point)
 
                 circle_points[i] = euclidean_circle_point
+                # draw_circle(canvas, circle_points[i], 2.0, 0.0, 2.0 * math.pi, True, is_additional[i])
 
                 if i > 0:
                     draw_line_from_coordinate_to_coordinate(canvas, circle_points[i - 1], circle_points[i], colors[circle_colors[index]])
@@ -543,6 +572,26 @@ def redraw(canvas):
         (node1, node2) = edge
         draw_edge_from_coordinate_to_coordinate(canvas, points[node1], points[node2], "black")
 
+# Internally, the angle 0 is on the left. We want it on the right.
+def converted_angle_from_native_angle(angle):
+    return (3.0 * math.pi - angle) % (2.0 * math.pi)
+
+def update_status_label():
+    global status_label
+    global is_circle_node
+    global circle_sizes
+    global points
+    status_label_text = ""
+    if len(selected_nodes) > 0:
+        for selected_node in selected_nodes:
+            if is_circle_node[selected_node]:
+                circle_center = hyperbolic_coordinate_from_canvas_point(canvas, points[selected_node])
+                status_label_text += "Circle Center: (" + "{:1.4f}".format(circle_center.r) + ", " + "{:1.4f}".format(converted_angle_from_native_angle(circle_center.phi)) + "), Radius: " + "{:1.4}".format(circle_sizes[selected_node]) + "\n"
+            else:
+                coordinate = hyperbolic_coordinate_from_canvas_point(canvas, points[selected_node])
+                status_label_text += "Point: (" + "{:1.4f}".format(coordinate.r) + ", " + "{:1.4f}".format(converted_angle_from_native_angle(coordinate.phi)) + ")" + "\n"
+
+    status_label['text'] = status_label_text
 
 # Mouse Interaction
 def mouse_pressed(event):
@@ -557,7 +606,10 @@ def mouse_pressed(event):
             del selected_nodes[:]
             selected_nodes.append(index)
             shortest_distance = distance
+
+    update_status_label()
     redraw(canvas)
+
 
 def shift_mouse_pressed(event):
     mouse_location = euclidean_coordinates.EuclideanCoordinate(event.x, event.y)
@@ -576,6 +628,7 @@ def shift_mouse_pressed(event):
         if not selected_index in selected_nodes:
             selected_nodes.append(selected_index)
 
+    update_status_label()
     redraw(canvas)
 
 
@@ -584,6 +637,7 @@ def mouse_dragged(event):
     mouse_location = euclidean_coordinates.EuclideanCoordinate(event.x, event.y)
     if len(selected_nodes) > 0:
         points[selected_nodes[0]] = mouse_location
+    update_status_label()
     redraw(canvas)
 
 def right_mouse_pressed(event):
@@ -616,6 +670,8 @@ def mouse_scrolled_with_delta(delta):
                 current_circle_size = 0.1
 
             circle_sizes[selected_node] = current_circle_size
+
+    update_status_label()
     redraw(canvas)
 
 def mouse_scrolled(event):
@@ -641,6 +697,7 @@ def delete_pressed(event):
         circle_colors.pop(selected_node)
     del selected_nodes[:]
 
+    update_status_label()
     redraw(canvas)
 
 def c_pressed(event):
@@ -664,7 +721,43 @@ def o_pressed(event):
     circle_colors.append(0)
     redraw(canvas)
 
+def d_pressed(event):
+    global points
+    global edges
+    global circle_sizes
+    global circle_colors
+    global selected_nodes
+    global is_circle_node
+    points = []
+    edges = []
+    circle_sizes = []
+    circle_colors = []
+    selected_nodes = []
+    is_circle_node = []
+    current_circle_size = 5.0
+
+    global status_label
+    status_label["text"] = "Deleted everything."
+    redraw(canvas)
+
 def e_pressed(event):
+    global selected_nodes
+    global edges
+    for i in range(0, len(selected_nodes)):
+        for j in range(i + 1, len(selected_nodes)):
+            selected_node1 = selected_nodes[i]
+            selected_node2 = selected_nodes[j]
+            edge = (selected_node1, selected_node2)
+            inverse_edge = (selected_node2, selected_node1) 
+            if edge in edges:
+                edges.remove(edge)
+            elif inverse_edge in edges:
+                edges.remove(inverse_edge)
+            else:
+                edges.append(edge)
+    redraw(canvas)
+
+def g_pressed(event):
     global selected_nodes
     global edges
     for i in range(0, len(selected_nodes)):
@@ -735,15 +828,17 @@ canvas.bind("<Button-5>", mouse_scroll_down)
 root.bind("<BackSpace>", delete_pressed)
 root.bind("<MouseWheel>", mouse_scrolled)
 root.bind("c", c_pressed)
-root.bind("o", o_pressed)
+root.bind("d", d_pressed)
 root.bind("e", e_pressed)
-root.bind("s", s_pressed)
+root.bind("g", g_pressed)
 root.bind("i", i_pressed)
+root.bind("o", o_pressed)
 root.bind("r", r_pressed)
+root.bind("s", s_pressed)
 root.bind("+", mouse_scroll_up)
 root.bind("-", mouse_scroll_down)
 
-message = Label(canvas, text = \
+usage_label = Label(canvas, text = \
                 "Right Click: Add point and circle \n" +\
                 "Shift Right Click: Adds a point without a circle \n" +\
                 "Left Click: Select a point \n" +\
@@ -755,9 +850,12 @@ message = Label(canvas, text = \
                 "MouseWheel / '+' / '-': Change Circle Radius \n" +\
                 "C: Cycle through the colors [Black, Green, Red, Blue, Orange and Magenta]\n" +\
                 "S: Print the drawing as SVG\n" +\
-                "I: Print the drawing as IPE", justify=LEFT)
-message.pack(side = BOTTOM, anchor=W)
+                "I: Print the drawing as IPE\n" +\
+                "D: Delete everything", justify=LEFT)
+usage_label.pack(side = BOTTOM, anchor=W)
 
+status_label = Label(canvas, text = "", justify=RIGHT)
+status_label.pack(side = TOP, anchor=E)
 
 while True:
     try:
