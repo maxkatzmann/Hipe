@@ -32,7 +32,8 @@ Launch the tool by calling `python3 HyperVis.py`
 # Notes
 * The blue point at the center represents the origin of the hyperbolic plane
 * New circles are black and have the same size as the last circle that was edited
-* Trying to add an edge between two already connected points wil
+* Trying to add an edge between two already connected points will delete the edge between them
+* An edge between items of the same color will also have this color
 * When using `S` or `I` a folder called `output` will be created where HyperVis was launched. The drawing will be saved as SVG or Ipe file using the current timestamp as filename.
 
 # Known Issues
