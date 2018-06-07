@@ -231,5 +231,22 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
                                               2.0 * math.pi - upper_sample_point.phi)
         lower_sample_points.append(lower_sample_point)
 
+    # Now we need to reverse the translations made earlier.
+    for index in range(len(upper_sample_points)):
+        upper_sample_point = upper_sample_points[index]
+        lower_sample_point = lower_sample_points[index]
+
+        rotated_upper = coordinate_rotated_around_origin_by_angle(upper_ample_point, -rotation_angle2)
+        rotated_lower = coordinate_rotated_around_origin_by_angle(lower_ample_point, -rotation_angle2)
+
+        translated_upper = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_upper, -translation_distance)
+        translated_lower = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_lower, -translation_distance)
+
+        final_upper = coordinate_rotated_around_origin_by_angle(translated_upper, -rotation_angle1)
+        final_lower = coordinate_rotated_around_origin_by_angle(translated_lower, -rotation_angle1)
+
+        upper_sample_points[index] = final_upper
+        lower_sample_points[index] = final_lower
+
     return sampled_hypercycle(upper_samples = upper_sample_points,
                               lower_samples = lower_sample_points)

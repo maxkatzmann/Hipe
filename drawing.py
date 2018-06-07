@@ -33,6 +33,15 @@ class circle:
         self.radius = radius
         self.color = color
 
+class edge:
+    def __init__(self, index1, index2):
+        self.index1 = index1
+        self.index2 = index2
+        self.has_hypercycle = False
+
+    def __str__(self):
+        return "("  + str(self.index1) + ", " + str(self.index2) + ")"
+
 def is_circle_item(item):
     return isinstance(item, circle)
 
@@ -105,10 +114,9 @@ class drawer:
                     circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], self.colors[item.color], self.selection_border_size)
 
         for edge in edges:
-            (node1, node2) = edge
             color = "black"
-            item1 = items[node1]
-            item2 = items[node2]
+            item1 = items[edge.index1]
+            item2 = items[edge.index2]
             if item1.color == item2.color:
                 color = self.colors[item1.color]
             self.draw_edge_from_coordinate_to_coordinate(item1.coordinate,

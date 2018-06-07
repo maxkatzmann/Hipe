@@ -18,6 +18,7 @@
 
 from tkinter import *
 # Reference: https://infohost.nmt.edu/tcc/help/pubs/tkinter/web/index.html
+import datetime
 import math
 import sys
 import drawing
@@ -52,7 +53,6 @@ def redraw():
     global items
     global edges
     global selected_nodes
-    global scale
 
     drawer.clear()
     drawer.draw(items,
@@ -90,7 +90,9 @@ def set_status_label_text(text):
 def update_status_label():
     global items
     global selected_nodes
+
     status_label_text = ""
+
     if len(selected_nodes) > 0:
         for selected_node in selected_nodes:
             item = items[selected_node]
@@ -213,16 +215,33 @@ def delete_pressed(event):
 
     sorted_selection_indices = sorted(selected_nodes)
 
+    # Vertices will be deleted so the indices of the other vertices change.
+    # Here we determine the map from the old indices to the new ones
+    index_map = dict()
+    current_new_index = 0
+    for index in range(len(items)):
+        if not index in sorted_selection_indices:
+            index_map[index] = current_new_index
+            current_new_index += 1
+
     for selected_node in reversed(sorted_selection_indices):
         edges_to_remove = []
         for index, edge in enumerate(edges):
-            if selected_node in edge:
+            if edge.index1 == selected_node or edge.index2 == selected_node:
                 edges_to_remove.append(index)
 
         for edge_index in reversed(sorted(edges_to_remove)):
             del edges[edge_index]
 
         del items[selected_node]
+
+    for index, edge in enumerate(edges):
+        for old_index, new_index in index_map.items():
+            if edge.index1 == old_index:
+                edge.index1 = new_index
+            if edge.index2 == old_index:
+                edge.index2 = new_index
+            edges[index] = edge
 
     del selected_nodes[:]
 
@@ -267,18 +286,22 @@ def d_pressed(event):
 def e_pressed(event):
     global selected_nodes
     global edges
+
     for i in range(0, len(selected_nodes)):
         for j in range(i + 1, len(selected_nodes)):
             selected_node1 = selected_nodes[i]
             selected_node2 = selected_nodes[j]
-            edge = (selected_node1, selected_node2)
-            inverse_edge = (selected_node2, selected_node1)
-            if edge in edges:
-                edges.remove(edge)
-            elif inverse_edge in edges:
-                edges.remove(inverse_edge)
-            else:
-                edges.append(edge)
+            new_edge = drawing.edge(selected_node1, selected_node2)
+
+            edge_already_present = False
+            for edge in edges:
+                if (edge.index1 == selected_node1 and edge.index2 == selected_node2) or (edge.index2 == selected_node1 and edge.index1 == selected_node2):
+                    edges.remove(edge)
+                    edge_already_present = True
+                    break
+
+            if not edge_already_present:
+                edges.append(new_edge)
     redraw()
 
 def h_pressed(event):
@@ -334,7 +357,6 @@ def r_pressed(event):
 def s_pressed(event):
     call(["mkdir", "-p", "output"])
     old_stdout = sys.stdout
-    import datetime
     filename = './output/' + str(datetime.datetime.now()) + '.svg'
     sys.stdout = open(filename, "w")
     print_svg()
@@ -345,7 +367,6 @@ def s_pressed(event):
 def i_pressed(event):
     call(["mkdir", "-p", "output"])
     old_stdout = sys.stdout
-    import datetime
     filename = './output/' + str(datetime.datetime.now()) + '.ipe'
     sys.stdout = open(filename, "w")
     print_ipe()
