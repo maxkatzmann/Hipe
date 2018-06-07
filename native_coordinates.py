@@ -1,18 +1,18 @@
 # This program visualizes hyperbolic circles using the native representation.
-# Copyright (C) 2017    Maximilian Katzmann
+# Copyright (C) 2018    Maximilian Katzmann
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # You can contact the author via email: max.katzmann@gmail.com
 
@@ -20,7 +20,7 @@ import math
 import euclidean_coordinates
 
 # Polar Coordinates
-class PolarCoordinate:
+class polar_coordinate:
     def __init__(self, r, phi):
         self.r = r
         self.phi = phi
@@ -29,7 +29,7 @@ class PolarCoordinate:
         return "(r = " + str(self.r) + ", phi = " + str(self.phi) + ")"
 
     def to_euclidean_coordinate_with_scale(self, scale):
-        return euclidean_coordinates.EuclideanCoordinate(\
+        return euclidean_coordinates.euclidean_coordinate(\
         self.r * math.cos(self.phi) * scale, \
         self.r * math.sin(self.phi) * scale)
 
@@ -40,7 +40,7 @@ def coordinate_rotated_around_origin_by_angle(coordinate, angle):
     if coordinate.r == 0:
         return coordinate
 
-    result = PolarCoordinate(coordinate.r, coordinate.phi)
+    result = polar_coordinate(coordinate.r, coordinate.phi)
     result.phi = math.fmod(coordinate.phi + angle, 2.0 * math.pi)
 
     while result.phi < 0.0:
@@ -55,15 +55,15 @@ def distance_between(coord1, coord2):
     - math.sinh(coord1.r) * math.sinh(coord2.r) * math.cos(delta_phi));
 
 def coordinate_mirrored_on_x_axis(coordinate):
-    return PolarCoordinate(coordinate.r, -(coordinate.phi - (2.0 * math.pi)))
+    return polar_coordinate(coordinate.r, -(coordinate.phi - (2.0 * math.pi)))
 
 def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distance):
     if coordinate.phi != math.pi:
-        original_point = PolarCoordinate(0.0, 0.0)
+        original_point = polar_coordinate(0.0, 0.0)
         original_point.r = coordinate.r
         original_point.phi = coordinate.phi
 
-        reference_point = PolarCoordinate(0.0, 0.0)
+        reference_point = polar_coordinate(0.0, 0.0)
         if distance > 0.0:
             reference_point.r = math.fabs(distance)
             reference_point.phi = math.pi
@@ -90,7 +90,7 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
         except ValueError:
                 angular_coordinate = 0.0
 
-        translated_coordinate = PolarCoordinate(radial_coordinate, angular_coordinate);
+        translated_coordinate = polar_coordinate(radial_coordinate, angular_coordinate);
         if original_point.phi > math.pi:
             translated_coordinate = coordinate_mirrored_on_x_axis(translated_coordinate)
 
@@ -111,4 +111,85 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
                 newAngle = math.pi
                 newRadius = coordinate.r - distance
 
-        return PolarCoordinate(newRadius, newAngle);
+        return polar_coordinate(newRadius, newAngle);
+
+def render_points_for_line_from_to(point1, point2):
+
+    render_detail = 100
+    if point1.r == 0 or point2.r == 0:
+        return [point1, point2]
+    else:
+        angular_distance = point2.phi - point1.phi
+        if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
+            temp = point1
+            point1 = point2
+            point2 = temp
+
+        distance = distance_between(point1, point2)
+
+        cos_gamma_2 = 0.0
+        try:
+            cos_gamma_2 = (((math.cosh(point2.r) * math.cosh(distance)) - math.cosh(point1.r)) / (math.sinh(point2.r) * math.sinh(distance)))
+        except (ZeroDivisionError, ValueError):
+            pass
+
+        line_points = []
+        for i in range(0, render_detail):
+            partial_distance = distance * (i / float(render_detail))
+            r = 0.0
+            try:
+                r = math.acosh((math.cosh(point2.r) * math.cosh(partial_distance) - (math.sinh(point2.r) * math.sinh(partial_distance) * cos_gamma_2)))
+            except (ZeroDivisionError, ValueError):
+                pass
+            gamma_prime = 0.0
+            try:
+                gamma_prime = math.acos(((math.cosh(r) * math.cosh(point2.r)) - math.cosh(partial_distance)) / (math.sinh(r) * math.sinh(point2.r)))
+            except (ZeroDivisionError, ValueError):
+                pass
+
+            phi = point2.phi + gamma_prime
+            native_line_point = polar_coordinate(r, phi)
+
+            line_points.append(native_line_point)
+        return line_points
+
+
+def render_points_for_circle_with_center_and_radius(center, radius, scale):
+    render_detail = 360
+    render_detail_half = render_detail / 2
+
+    additional_render_detail = math.floor(center.r * center.r)
+    render_detail_factor = 0
+
+    if center.r > 0:
+        render_detail_factor = min(1.0, 0.75 * scale / (center.r * center.r))
+    angular_point_distance = 2.0 * math.pi / render_detail
+
+    circle_points = []
+    for i in range(render_detail):
+        native_circle_point = polar_coordinate(radius, i * angular_point_distance)
+        circle_points.append(native_circle_point)
+
+        if i == render_detail_half:
+            for j in range(additional_render_detail):
+                native_circle_point = polar_coordinate(radius, \
+                i * angular_point_distance + j * (render_detail_factor * angular_point_distance / additional_render_detail))
+                circle_points.append(native_circle_point)
+        elif i == render_detail_half - 1:
+            for j in range(additional_render_detail):
+                native_circle_point = polar_coordinate(radius, \
+                (i + (1.0 - render_detail_factor)) * angular_point_distance + j * (render_detail_factor * angular_point_distance / additional_render_detail))
+                circle_points.append(native_circle_point)
+        elif abs(i - render_detail_half) <= 7 * render_detail_factor - 4:
+            for j in range(math.floor(additional_render_detail * render_detail_factor * render_detail_factor)):
+                native_circle_point = polar_coordinate(radius, \
+                i * angular_point_distance + j * (angular_point_distance / (additional_render_detail * render_detail_factor * render_detail_factor)))
+                circle_points.append(native_circle_point)
+
+    for i in range(len(circle_points)):
+        native_circle_point = circle_points[i]
+        translated_point = coordinate_translated_along_x_axis_by_hyperbolic_distance(native_circle_point, center.r)
+        rotated_point = coordinate_rotated_around_origin_by_angle(translated_point, center.phi)
+        circle_points[i] = rotated_point
+
+    return circle_points
