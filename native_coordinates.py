@@ -18,6 +18,9 @@
 
 import math
 import euclidean_coordinates
+import collections
+
+sampled_hypercycle = collections.namedtuple("sampled_hypercycle", ["upper_samples", "lower_samples"])
 
 # Polar Coordinates
 class polar_coordinate:
@@ -193,3 +196,40 @@ def render_points_for_circle_with_center_and_radius(center, radius, scale):
         circle_points[i] = rotated_point
 
     return circle_points
+
+def render_points_for_hypercycle_around_points(point1, point2, radius):
+    # Rotate the points such that the first lies on the x-axis We don't
+    # actually move the first point, as we can infer everything we know from
+    # its current position.
+    rotation_angle1 = -point1.phi
+    rotated_point2 = coordinate_rotated_around_origin_by_angle(point2, rotation_angle1)
+
+    # Rotate the points such that the first lies on the origin
+    translation_distance = -point1.r
+    translated_point2 = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_point2, translation_distance)
+
+    # Rotate everything such that the second points is on the x-axis.
+    # We don't actually perform the rotation (as it is not necessary).
+    rotation_angle2 = -translated_point2.phi
+
+    # The first point is now on the origin, the second points is on the x-axis.
+    # Now we sample the points for the two lines representing the hypercycle.
+    render_detail = 100
+
+    # The reference point is the one that is translated along the x-axis to get
+    # the sampling points.
+    reference_point = polar_coordinate(radius, math.pi / 2.0)
+
+    upper_sample_points = []
+    lower_sample_points = []
+
+    for i in range(render_detail):
+        current_x = translated_point2.r / render_detail
+        upper_sample_point = coordinte_translated_along_x_axis_by_hyperbolic_distance(reference_point, current_x)
+        upper_sample_points.append(sample_point)
+        lower_sample_point = polar_coordinate(upper_sample_point.r,
+                                              2.0 * math.pi - upper_sample_point.phi)
+        lower_sample_points.append(lower_sample_point)
+
+    return sampled_hypercycle(upper_samples = upper_sample_points,
+                              lower_samples = lower_sample_points)

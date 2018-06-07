@@ -20,10 +20,27 @@ from tkinter import *
 import euclidean_coordinates
 import native_coordinates
 import math
+import collections
+
+class point:
+    def __init__(self, coordinate, color):
+        self.coordinate = coordinate
+        self.color = color
+
+class circle:
+    def __init__(self, coordinate, radius, color):
+        self.coordinate = coordinate
+        self.radius = radius
+        self.color = color
+
+def is_circle_item(item):
+    return isinstance(item, circle)
 
 class drawer:
 
     colors = ["black", "red", "green", "blue", "orange", "magenta"];
+    selection_border_size = 1
+    point_size = 3
 
     def __init__(self, canvas, scale):
         self.canvas = canvas
@@ -37,22 +54,29 @@ class drawer:
         native_point = relative_point.to_native_coordinate_with_scale(self.scale)
         return native_point
 
-    def draw(self, points, edges, circle_sizes, circle_colors, selected_nodes, is_circle_node):
+    def draw(self, items, edges, selected_nodes):
+        self.draw_with_functions(items,
+                                 edges,
+                                 selected_nodes,
+                                 self.draw_line_from_coordinate_to_coordinate,
+                                 self.draw_circle)
+
+    def draw_with_functions(self, items, edges, selected_nodes, line_func, circle_func):
         center = euclidean_coordinates.euclidean_coordinate(\
             self.canvas.winfo_width() / 2.0, \
             self.canvas.winfo_height() / 2.0)
 
-        self.draw_circle(center, 2.0, 0.0, 2.0 * math.pi, True, "blue")
+        circle_func(center, self.point_size, 0.0, 2.0 * math.pi, True, "blue", "blue", 1.0)
 
-        for index, point in enumerate(points):
-            if is_circle_node[index]:
+        for index, item in enumerate(items):
+            if is_circle_item(item):
                 if index in selected_nodes:
-                    self.draw_circle(point, 2.0, 0.0, 2.0 * math.pi, True, "red")
+                    circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], "red", self.selection_border_size)
                 else:
-                    self.draw_circle(point, 2.0, 0.0, 2.0 * math.pi, True, "black")
+                    circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], self.colors[item.color], self.selection_border_size)
 
-                circle_size = circle_sizes[index]
-                native_point = self.hyperbolic_coordinate_from_canvas_point(point)
+                circle_size = item.radius
+                native_point = self.hyperbolic_coordinate_from_canvas_point(item.coordinate)
 
                 circle_points = native_coordinates.render_points_for_circle_with_center_and_radius(native_point,
                                                                                                    circle_size,
@@ -64,29 +88,36 @@ class drawer:
                     euclidean_circle_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_point)
                     converted_points.append(euclidean_circle_point)
                     if i > 0:
-                        self.draw_line_from_coordinate_to_coordinate(converted_points[i - 1],
-                                                                     converted_points[i],
-                                                                     self.colors[circle_colors[index]])
+                        line_func(converted_points[i - 1],
+                                  converted_points[i],
+                                  self.colors[item.color])
 
-                self.draw_line_from_coordinate_to_coordinate(converted_points[len(circle_points) - 1],
-                                                             converted_points[0],
-                                                             self.colors[circle_colors[index]])
+                line_func(converted_points[len(circle_points) - 1],
+                          converted_points[0],
+                          self.colors[item.color])
             else:
-                relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(point, center)
+                relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(item.coordinate, center)
                 native_point = relative_point.to_native_coordinate_with_scale(self.scale)
 
                 if index in selected_nodes:
-                    self.draw_circle(point, 2.0, 0.0, 2.0 * math.pi, True, "red")
+                    circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], "red", self.selection_border_size)
                 else:
-                    self.draw_circle(point, 2.0, 0.0, 2.0 * math.pi, True, "black")
+                    circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], self.colors[item.color], self.selection_border_size)
 
         for edge in edges:
             (node1, node2) = edge
-            self.draw_edge_from_coordinate_to_coordinate(points[node1],
-                                                         points[node2],
-                                                         "black")
+            color = "black"
+            item1 = items[node1]
+            item2 = items[node2]
+            if item1.color == item2.color:
+                color = self.colors[item1.color]
+            self.draw_edge_from_coordinate_to_coordinate(item1.coordinate,
+                                                         item2.coordinate,
+                                                         color,
+                                                         line_func)
 
-    def draw_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color):
+    def draw_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
+
         upper_left = euclidean_coordinates.euclidean_coordinate(center.x - radius, center.y - radius)
         lower_right = euclidean_coordinates.euclidean_coordinate(center.x + radius, center.y + radius)
 
@@ -100,7 +131,8 @@ class drawer:
                                        start = math.degrees(0.0), \
                                        extent = math.degrees(math.pi), \
                                        fill = fill_color, \
-                                       outline = fill_color)
+                                       outline = border_color, \
+                                       width = width)
                 self.canvas.create_arc(upper_left.x, \
                                        upper_left.y, \
                                        lower_right.x, \
@@ -109,7 +141,8 @@ class drawer:
                                        start = math.degrees(math.pi), \
                                        extent = math.degrees(1.99 * math.pi), \
                                        fill = fill_color, \
-                                       outline = fill_color)
+                                       outline = border_color, \
+                                       width = width)
             else:
                 self.canvas.create_arc(upper_left.x, \
                                        upper_left.y, \
@@ -119,7 +152,8 @@ class drawer:
                                        start = math.degrees(start_angle), \
                                        extent = math.degrees(end_angle - start_angle), \
                                        fill = fill_color, \
-                                       outline = fill_color)
+                                       outline = border_color, \
+                                       width = width)
         else:
             if start_angle == 0.0 and end_angle == 2.0 * math.pi:
                 self.canvas.create_arc(upper_left.x, \
@@ -128,14 +162,18 @@ class drawer:
                                        lower_right.y, \
                                        style = ARC, \
                                        start = math.degrees(0.0), \
-                                       extent = math.degrees(math.pi))
+                                       extent = math.degrees(math.pi), \
+                                       outline = border_color, \
+                                       width = width)
                 self.canvas.create_arc(upper_left.x, \
                                        upper_left.y, \
                                        lower_right.x, \
                                        lower_right.y, \
                                        style = ARC, \
                                        start = math.degrees(math.pi), \
-                                       extent = math.degrees(1.99 * math.pi))
+                                       extent = math.degrees(1.99 * math.pi), \
+                                       outline = border_color, \
+                                       width = width)
             else:
                 self.canvas.create_arc(upper_left.x, \
                                        upper_left.y, \
@@ -143,9 +181,10 @@ class drawer:
                                        lower_right.y, \
                                        style = ARC, \
                                        start = math.degrees(start_angle), \
-                                       extent = math.degrees(end_angle - start_angle))
+                                       extent = math.degrees(end_angle - start_angle),
+                                       width = width)
 
-    def draw_edge_from_coordinate_to_coordinate(self, coord1, coord2, color):
+    def draw_edge_from_coordinate_to_coordinate(self, coord1, coord2, color, line_func):
         render_detail = 100
         center = euclidean_coordinates.euclidean_coordinate(\
             self.canvas.winfo_width() / 2.0, \
@@ -168,18 +207,18 @@ class drawer:
             converted_points.append(euclidean_line_point)
 
             if i > 0:
-                self.draw_line_from_coordinate_to_coordinate(converted_points[i - 1],
-                                                             converted_points[i],
-                                                             color)
+                line_func(converted_points[i - 1],
+                          converted_points[i],
+                          color)
         if len(converted_points) > 2:
             if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
-                self.draw_line_from_coordinate_to_coordinate(converted_points[render_detail - 1],
-                                                             coord2,
-                                                             color)
+                line_func(converted_points[render_detail - 1],
+                          coord2,
+                          color)
             else:
-                self.draw_line_from_coordinate_to_coordinate(converted_points[render_detail - 1],
-                                                             coord1,
-                                                             color)
+                line_func(converted_points[render_detail - 1],
+                          coord1,
+                          color)
 
     def draw_line_from_coordinate_to_coordinate(self, coord1, coord2, color):
         self.canvas.create_line(coord1.x, \

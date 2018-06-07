@@ -38,107 +38,101 @@ scale = 35.0
 drawer = drawing.drawer(canvas, scale)
 
 def resize(event):
-    canvas.delete("all")
-    redraw(canvas)
+    drawer.clear()
+    redraw()
 
 ### Main ###
 
-points = []
+items = []
 edges = []
-circle_sizes = []
-circle_colors = []
 selected_nodes = []
-is_circle_node = []
 current_circle_size = 10.0
 
-def print_ipe():
-    global points
+def redraw():
+    global items
     global edges
-    global circle_sizes
-    global circle_colors
     global selected_nodes
-    global is_circle_node
     global scale
-    printer = printing.printer(canvas, scale)
-    printer.print_ipe(points, edges, circle_sizes, circle_colors,
-                      selected_nodes, is_circle_node)
+
+    drawer.clear()
+    drawer.draw(items,
+                edges,
+                selected_nodes)
+
+### Saving ###
+
+def print_ipe():
+    global items
+    global edges
+    global selected_nodes
+    printer = printing.printer(drawer)
+    printer.print_ipe(items,
+                      edges,
+                      selected_nodes)
 
 def print_svg():
-    global points
+    global items
     global edges
-    global circle_sizes
-    global circle_colors
     global selected_nodes
-    global is_circle_node
-    global scale
-    printer = printing.printer(canvas, scale)
-    printer.print_svg(points, edges, circle_sizes, circle_colors,
-                      selected_nodes, is_circle_node)
-
-def redraw(canvas):
-    global points
-    global edges
-    global circle_sizes
-    global circle_colors
-    global selected_nodes
-    global is_circle_node
-    global scale
-    drawer.clear()
-    drawer.draw(points,
-                edges,
-                circle_sizes,
-                circle_colors,
-                selected_nodes,
-                is_circle_node)
+    printer = printing.printer(drawer)
+    printer.print_svg(items,
+                      edges,
+                      selected_nodes)
 
 # Internally, the angle 0 is on the left. We want it on the right.
 def converted_angle_from_native_angle(angle):
     return (3.0 * math.pi - angle) % (2.0 * math.pi)
 
-def update_status_label():
+def set_status_label_text(text):
     global status_label
-    global is_circle_node
-    global circle_sizes
-    global points
+    status_label['text'] = text
+
+def update_status_label():
+    global items
+    global selected_nodes
     status_label_text = ""
     if len(selected_nodes) > 0:
         for selected_node in selected_nodes:
-            if is_circle_node[selected_node]:
-                circle_center = drawer.hyperbolic_coordinate_from_canvas_point(points[selected_node])
-                status_label_text += "Circle Center: (" + "{:1.4f}".format(circle_center.r) + ", " + "{:1.4f}".format(converted_angle_from_native_angle(circle_center.phi)) + "), Radius: " + "{:1.4}".format(circle_sizes[selected_node]) + "\n"
+            item = items[selected_node]
+            if drawing.is_circle_item(items[selected_node]):
+                circle_center = drawer.hyperbolic_coordinate_from_canvas_point(item.coordinate)
+                status_label_text += "Circle Center: (" + "{:1.4f}".format(circle_center.r) + ", " + "{:1.4f}".format(converted_angle_from_native_angle(circle_center.phi)) + "), Radius: " + "{:1.4}".format(item.radius) + "\n"
             else:
-                coordinate = drawer.hyperbolic_coordinate_from_canvas_point(points[selected_node])
+                coordinate = drawer.hyperbolic_coordinate_from_canvas_point(item.coordinate)
                 status_label_text += "Point: (" + "{:1.4f}".format(coordinate.r) + ", " + "{:1.4f}".format(converted_angle_from_native_angle(coordinate.phi)) + ")" + "\n"
 
-    status_label['text'] = status_label_text
+    set_status_label_text(status_label_text)
 
 # Mouse Interaction
 def mouse_pressed(event):
-    mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
-
-    shortest_distance = sys.float_info.max
     global selected_nodes
 
-    for index, point in enumerate(points):
-        distance = euclidean_coordinates.distance_between(mouse_location, point)
+    mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
+    shortest_distance = sys.float_info.max
+
+    for index, item in enumerate(items):
+        distance = euclidean_coordinates.distance_between(mouse_location, item.coordinate)
+
         if distance < shortest_distance:
             del selected_nodes[:]
             selected_nodes.append(index)
             shortest_distance = distance
 
     update_status_label()
-    redraw(canvas)
-
+    redraw()
 
 def shift_mouse_pressed(event):
-    mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
-
-    shortest_distance = sys.float_info.max
     global selected_nodes
 
+    mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
+    shortest_distance = sys.float_info.max
+
     selected_index = -1
-    for index, point in enumerate(points):
-        distance = euclidean_coordinates.distance_between(mouse_location, point)
+    for index, item in enumerate(items):
+
+        distance = euclidean_coordinates.distance_between(mouse_location,
+                                                          item.coordinate)
+
         if distance < shortest_distance:
             selected_index = index
             shortest_distance = distance
@@ -148,50 +142,59 @@ def shift_mouse_pressed(event):
             selected_nodes.append(selected_index)
 
     update_status_label()
-    redraw(canvas)
-
+    redraw()
 
 def mouse_dragged(event):
     global selected_nodes
+
     mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
+
     if len(selected_nodes) > 0:
-        points[selected_nodes[0]] = mouse_location
+        item = items[selected_nodes[0]]
+        item.coordinate = mouse_location
+        items[selected_nodes[0]] = item
+
     update_status_label()
-    redraw(canvas)
+    redraw()
 
 def right_mouse_pressed(event):
     global current_circle_size
+
     mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
-    points.append(mouse_location)
-    is_circle_node.append(True)
-    circle_sizes.append(current_circle_size)
-    circle_colors.append(0)
-    redraw(canvas)
+
+    circle = drawing.circle(coordinate = mouse_location,
+                            radius = current_circle_size,
+                            color = 0)
+    items.append(circle)
+    redraw()
 
 def shift_right_mouse_pressed(event):
     global current_circle_size
+
     mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
-    points.append(mouse_location)
-    is_circle_node.append(False)
-    circle_sizes.append(current_circle_size)
-    circle_colors.append(0)
-    redraw(canvas)
+
+    point = drawing.point(coordinate = mouse_location, color = 0)
+    items.append(point)
+    redraw()
 
 def mouse_scrolled_with_delta(delta):
     global selected_nodes
     global current_circle_size
+
     for selected_node in selected_nodes:
-        if is_circle_node[selected_node]:
-            current_circle_size = circle_sizes[selected_node]
+        item = items[selected_node]
+        if drawing.is_circle_item(item):
+            current_circle_size = item.radius
             current_circle_size += 0.1 * delta
 
             if current_circle_size < 0.1:
                 current_circle_size = 0.1
 
-            circle_sizes[selected_node] = current_circle_size
+            item.radius = current_circle_size
+            items[selected_node] = item
 
     update_status_label()
-    redraw(canvas)
+    redraw()
 
 def mouse_scrolled(event):
     mouse_scrolled_with_delta(event.delta)
@@ -204,60 +207,62 @@ def mouse_scroll_down(event):
 
 # Keyboard Interaction
 def delete_pressed(event):
-    global selected_nodes
+    global items
     global edges
-    for selected_node in selected_nodes:
-        for edge in edges:
+    global selected_nodes
+
+    sorted_selection_indices = sorted(selected_nodes)
+
+    for selected_node in reversed(sorted_selection_indices):
+        edges_to_remove = []
+        for index, edge in enumerate(edges):
             if selected_node in edge:
-                edges.remove(edge)
-        points.pop(selected_node)
-        is_circle_node.pop(selected_node)
-        circle_sizes.pop(selected_node)
-        circle_colors.pop(selected_node)
+                edges_to_remove.append(index)
+
+        for edge_index in reversed(sorted(edges_to_remove)):
+            del edges[edge_index]
+
+        del items[selected_node]
+
     del selected_nodes[:]
 
     update_status_label()
-    redraw(canvas)
+    redraw()
 
 def c_pressed(event):
     global selected_nodes
     for selected_node in selected_nodes:
-        if is_circle_node[selected_node]:
-            selected_node_color_index = circle_colors[selected_node]
-            selected_node_color_index += 1
-            selected_node_color_index %= len(drawer.colors)
-            circle_colors[selected_node] = selected_node_color_index
-            redraw(canvas)
+        item = items[selected_node]
+        selected_node_color_index = item.color
+        selected_node_color_index += 1
+        selected_node_color_index %= len(drawer.colors)
+        item.color = selected_node_color_index
+        items[selected_node] = item
+        redraw()
 
 def o_pressed(event):
     global current_circle_size
+
     center = euclidean_coordinates.euclidean_coordinate(\
         canvas.winfo_width() / 2.0, \
         canvas.winfo_height() / 2.0)
-    points.append(center)
-    is_circle_node.append(True)
-    circle_sizes.append(current_circle_size)
-    circle_colors.append(0)
-    redraw(canvas)
+
+    origin = drawing.circle(center, current_circle_size, 0)
+
+    items.append(origin)
+    redraw()
 
 def d_pressed(event):
-    global points
+    global items
     global edges
-    global circle_sizes
-    global circle_colors
     global selected_nodes
-    global is_circle_node
-    points = []
+    items = []
     edges = []
-    circle_sizes = []
-    circle_colors = []
     selected_nodes = []
-    is_circle_node = []
-    current_circle_size = 5.0
+    current_circle_size = 10.0
 
-    global status_label
-    status_label["text"] = "Deleted everything."
-    redraw(canvas)
+    set_status_label_text("Cleared")
+    redraw()
 
 def e_pressed(event):
     global selected_nodes
@@ -267,52 +272,64 @@ def e_pressed(event):
             selected_node1 = selected_nodes[i]
             selected_node2 = selected_nodes[j]
             edge = (selected_node1, selected_node2)
-            inverse_edge = (selected_node2, selected_node1) 
+            inverse_edge = (selected_node2, selected_node1)
             if edge in edges:
                 edges.remove(edge)
             elif inverse_edge in edges:
                 edges.remove(inverse_edge)
             else:
                 edges.append(edge)
-    redraw(canvas)
+    redraw()
 
-def g_pressed(event):
+def h_pressed(event):
     global selected_nodes
     global edges
-    for i in range(0, len(selected_nodes)):
-        for j in range(i + 1, len(selected_nodes)):
-            selected_node1 = selected_nodes[i]
-            selected_node2 = selected_nodes[j]
-            edge = (selected_node1, selected_node2)
-            inverse_edge = (selected_node2, selected_node1) 
-            if edge in edges:
-                edges.remove(edge)
-            elif inverse_edge in edges:
-                edges.remove(inverse_edge)
-            else:
-                edges.append(edge)
-    redraw(canvas)
+
+    if len(selected_nodes) == 2:
+        selected_node1 = selected_nodes[0]
+        selected_node2 = selected_nodes[1]
+        edge = (selected_node1, selected_node2)
+        inverse_edge = (selected_node2, selected_node1)
+
+        edge_exists = False
+        if edge in edges:
+            edge_exists = True
+        elif inverse_edge in edges:
+            edge = inverse_edge
+            edge_exists = True
+
+        if not edge_exists:
+            edges.append(edge)
+
+        redraw()
+
+    else:
+        set_status_label_text("Select exactly 2 nodes to add a hypercycle!")
 
 def r_pressed(event):
     global selected_nodes
+
     if len(selected_nodes) > 1:
         center = euclidean_coordinates.euclidean_coordinate(\
                                                            canvas.winfo_width() / 2.0, \
                                                            canvas.winfo_height() / 2.0)
-        reference_point = points[selected_nodes[0]]
+        reference_point = items[selected_nodes[0]].coordinate
         relative_reference_point = euclidean_coordinates.coordinate_relative_to_coordinate(reference_point, center)
         native_reference_point = relative_reference_point.to_native_coordinate_with_scale(1.0)
         reference_radius = native_reference_point.r
         for i in range(1, len(selected_nodes)):
-            original_point = points[selected_nodes[i]]
+            item = items[selected_nodes[i]]
+            original_point = item.coordinate
             relative_original_point = euclidean_coordinates.coordinate_relative_to_coordinate(original_point, center)
             native_original_point = relative_original_point.to_native_coordinate_with_scale(1.0)
             native_original_point.r = reference_radius
             relative_modified_point = native_original_point.to_euclidean_coordinate_with_scale(1.0)
             modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, relative_modified_point)
-            points[selected_nodes[i]] = modified_point
+            item.coordinate = modified_point
+            items[selected_nodes[i]] = item
 
-        redraw(canvas)
+        update_status_label()
+        redraw()
 
 def s_pressed(event):
     call(["mkdir", "-p", "output"])
@@ -323,7 +340,7 @@ def s_pressed(event):
     print_svg()
     sys.stdout = old_stdout
     global status_label
-    status_label["text"] = "Drawing saved as " + filename
+    set_status_label_text("Drawing saved as " + filename)
 
 def i_pressed(event):
     call(["mkdir", "-p", "output"])
@@ -334,7 +351,7 @@ def i_pressed(event):
     print_ipe()
     sys.stdout = old_stdout
     global status_label
-    status_label["text"] = "Drawing saved as " + filename
+    set_status_label_text("Drawing saved as " + filename)
 
 canvas.bind("<Configure>", resize)
 canvas.bind("<Button-1>", mouse_pressed)
@@ -351,7 +368,7 @@ root.bind("<MouseWheel>", mouse_scrolled)
 root.bind("c", c_pressed)
 root.bind("d", d_pressed)
 root.bind("e", e_pressed)
-root.bind("g", g_pressed)
+root.bind("h", h_pressed)
 root.bind("i", i_pressed)
 root.bind("o", o_pressed)
 root.bind("r", r_pressed)
@@ -366,6 +383,7 @@ usage_label = Label(canvas, text = \
                 "Shift Left Click: Add to selection \n" +\
                 "O: Add circle around the oririn \n" +\
                 "E: Add an edge between all selected nodes \n" +\
+                "H: Add a hypercycle (partially) around 2 selected nodes \n" +\
                 "R: Set radii of selected points to the one of the first seleced \n" +\
                 "Back Space: Delete selected point \n" +\
                 "MouseWheel / '+' / '-': Change Circle Radius \n" +\
