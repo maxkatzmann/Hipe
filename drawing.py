@@ -85,9 +85,9 @@ class drawer:
         # Drawing the grid
         if self.grid_radius > 0:
             grid_color = "gray"
-            number_of_layers = math.ceil(math.log(math.exp(self.grid_radius / 2.0), 2.0))
-            alpha = 0.5
+            alpha = 0.75
             layer_width = math.log(2) / alpha
+            number_of_layers = math.floor(self.grid_radius / layer_width)
 
             # Drawing the layers
             for layer in range(number_of_layers):

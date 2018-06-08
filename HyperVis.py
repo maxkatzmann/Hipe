@@ -307,6 +307,7 @@ def d_pressed(event):
     edges = []
     selected_nodes = []
     current_circle_size = 10.0
+    drawer.grid_radius = 0.0
 
     set_status_label_text("Cleared")
     redraw()
