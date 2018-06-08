@@ -22,7 +22,9 @@ Launch the tool by calling `python3 HyperVis.py`
 * `BackSpace` deletes a selected point
 * `Mouse Wheel` or `+` or `-` changes the size of the selected circle
 * `O` adds a circle centered at the origin
-* `E` adds an edge between all selected points
+* `E` adds an edge between all selected points (press again to remove)
+* `H` adds a hypercycle (partially) around 2 selected nodes (press again to remove)
+* `G` adds a circle centered at the origin that contains a grid (press again to remove)
 * `R` sets the radius of all selected points to the one of the first selected point
 * `C` cycles through the colors of the selected circle `[Black, Green, Red, Blue, Orange and Magenta]`
 * `S` prints the drawing as SVG 

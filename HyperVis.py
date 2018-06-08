@@ -332,6 +332,16 @@ def e_pressed(event):
                 edges.append(new_edge)
     redraw()
 
+def g_pressed(event):
+    global current_circle_size
+
+    if drawer.grid_radius > 0:
+        drawer.grid_radius = 0
+    else:
+        drawer.grid_radius = current_circle_size
+
+    redraw()
+
 def h_pressed(event):
     global selected_nodes
     global edges
@@ -436,6 +446,7 @@ root.bind("<MouseWheel>", mouse_scrolled)
 root.bind("c", c_pressed)
 root.bind("d", d_pressed)
 root.bind("e", e_pressed)
+root.bind("g", g_pressed)
 root.bind("h", h_pressed)
 root.bind("i", i_pressed)
 root.bind("o", o_pressed)
@@ -445,16 +456,17 @@ root.bind("+", mouse_scroll_up)
 root.bind("-", mouse_scroll_down)
 
 usage_label = Label(canvas, text = \
-                "Right Click: Add point and circle \n" +\
-                "Shift Right Click: Adds a point without a circle \n" +\
-                "Left Click: Select a point \n" +\
-                "Shift Left Click: Add to selection \n" +\
-                "O: Add circle around the oririn \n" +\
-                "E: Add an edge between all selected nodes \n" +\
-                "H: Add a hypercycle (partially) around 2 selected nodes \n" +\
-                "R: Set radii of selected points to the one of the first seleced \n" +\
-                "Back Space: Delete selected point \n" +\
-                "MouseWheel / '+' / '-': Change Circle Radius \n" +\
+                "Right Click: Add point and circle\n" +\
+                "Shift Right Click: Add a point without a circle\n" +\
+                "Left Click: Select a point (with corresponding circle)\n" +\
+                "Shift Left Click: Add to selection\n" +\
+                "O: Add circle around the origin\n" +\
+                "E: Add an edge between all selected nodes (press again to remove)\n" +\
+                "H: Add a hypercycle (partially) around 2 selected nodes (press again to remove)\n" +\
+                "G: Add a circle centered at the origin that contains a grid (press again to remove)\n" +\
+                "R: Set radii of selected points to the one of the first selected\n" +\
+                "Back Space: Delete selected point\n" +\
+                "MouseWheel / '+' / '-': Change Circle Radius\n" +\
                 "C: Cycle through the colors [Black, Green, Red, Blue, Orange and Magenta]\n" +\
                 "S: Print the drawing as SVG\n" +\
                 "I: Print the drawing as IPE\n" +\

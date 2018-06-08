@@ -122,7 +122,7 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
 def render_points_for_line_from_to(point1, point2):
 
     render_detail = 100
-    if point1.r == 0 or point2.r == 0:
+    if point1.r == 0 or point2.r == 0 or point1.phi == point2.phi:
         return [point1, point2]
     else:
         angular_distance = point2.phi - point1.phi

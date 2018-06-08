@@ -47,7 +47,7 @@ class printer:
         print("</page>\n" +\
               "</ipe>")
 
-    def print_ipe_line(self, coord1, coord2, color):
+    def print_ipe_line(self, coord1, coord2, color, width = 1):
         print("<path stroke=\"" + str(color) + "\">\n" +\
               str(coord1.x) + " " + str(coord1.y) + " m\n" +\
               str(coord2.x) + " " + str(coord2.y) + " l\n" +\
@@ -78,11 +78,11 @@ class printer:
 
         print("\n</svg>\n")
 
-    def print_svg_line(self, coord1, coord2, color):
-        print("<line x1=\"" + str(coord1.x) + "\" y1=\"" + str(coord1.y) + "\" x2=\"" + str(coord2.x) + "\" y2=\"" + str(coord2.y) + "\" stroke=\"" + str(color) + "\" stroke-width=\"1.0\" opacity=\"1.0\"/>\n")
+    def print_svg_line(self, coord1, coord2, color, width = 1):
+        print("<line x1=\"" + str(coord1.x) + "\" y1=\"" + str(coord1.y) + "\" x2=\"" + str(coord2.x) + "\" y2=\"" + str(coord2.y) + "\" stroke=\"" + str(color) + "\" stroke-width=\"" + str(width) + "\" opacity=\"1.0\"/>\n")
 
     def print_svg_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
         if len(fill_color) > 0:
-            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"" + str(fill_color) + "\" stroke=\"" + str(fill_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
+            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"" + str(fill_color) + "\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
         else:
-            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"clear\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "/>\n")
+            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"white\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
