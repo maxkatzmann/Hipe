@@ -148,13 +148,24 @@ def shift_mouse_pressed(event):
 
 def mouse_dragged(event):
     global selected_nodes
+    global edges
 
     mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
 
     if len(selected_nodes) > 0:
         item = items[selected_nodes[0]]
         item.coordinate = mouse_location
+
+        # If the item is a circle, its circle points need to move now.
+        if drawing.is_circle_item(item):
+            item.circle_points_are_valid = False
+
         items[selected_nodes[0]] = item
+
+        # If the item is part of an edge, the edge needs to be updated.
+        for edge in edges:
+            if edge.index1 == selected_nodes[0] or edge.index2 == selected_nodes[0]:
+                edge.edge_points_are_valid = False
 
     update_status_label()
     redraw()
@@ -331,6 +342,7 @@ def h_pressed(event):
 
 def r_pressed(event):
     global selected_nodes
+    global edges
 
     if len(selected_nodes) > 1:
         center = euclidean_coordinates.euclidean_coordinate(\
@@ -349,7 +361,17 @@ def r_pressed(event):
             relative_modified_point = native_original_point.to_euclidean_coordinate_with_scale(1.0)
             modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, relative_modified_point)
             item.coordinate = modified_point
+
+            # If the item is a circle, its circle points need to move now.
+            if drawing.is_circle_item(item):
+                item.circle_points_are_valid = False
+
             items[selected_nodes[i]] = item
+
+            # If the item is part of an edge, the edge needs to be updated.
+            for edge in edges:
+                if edge.index1 == selected_nodes[i] or edge.index2 == selected_nodes[i]:
+                    edge.edge_points_are_valid = False
 
         update_status_label()
         redraw()

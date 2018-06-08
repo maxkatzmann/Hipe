@@ -32,11 +32,15 @@ class circle:
         self.coordinate = coordinate
         self.radius = radius
         self.color = color
+        self.circle_points = []
+        self.circle_points_are_valid = False
 
 class edge:
     def __init__(self, index1, index2):
         self.index1 = index1
         self.index2 = index2
+        self.edge_points = []
+        self.edge_points_are_valid = False
         self.has_hypercycle = False
 
     def __str__(self):
@@ -84,24 +88,32 @@ class drawer:
                 else:
                     circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], self.colors[item.color], self.selection_border_size)
 
-                circle_size = item.radius
-                native_point = self.hyperbolic_coordinate_from_canvas_point(item.coordinate)
+                converted_points = []
 
-                circle_points = native_coordinates.render_points_for_circle_with_center_and_radius(native_point,
+                if item.circle_points_are_valid:
+                    converted_points = item.circle_points
+                else:
+                    circle_size = item.radius
+                    native_point = self.hyperbolic_coordinate_from_canvas_point(item.coordinate)
+
+                    circle_points = native_coordinates.render_points_for_circle_with_center_and_radius(native_point,
                                                                                                    circle_size,
                                                                                                    self.scale)
-                converted_points = []
-                for i in range(len(circle_points)):
-                    circle_point = circle_points[i]
-                    converted_point = circle_point.to_euclidean_coordinate_with_scale(self.scale)
-                    euclidean_circle_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_point)
-                    converted_points.append(euclidean_circle_point)
+                    for i in range(len(circle_points)):
+                        circle_point = circle_points[i]
+                        converted_point = circle_point.to_euclidean_coordinate_with_scale(self.scale)
+                        euclidean_circle_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_point)
+                        converted_points.append(euclidean_circle_point)
+                    item.circle_points = converted_points
+                    item.circle_points_are_valid = True
+
+                for i in range(len(converted_points)):
                     if i > 0:
                         line_func(converted_points[i - 1],
                                   converted_points[i],
                                   self.colors[item.color])
 
-                line_func(converted_points[len(circle_points) - 1],
+                line_func(converted_points[len(converted_points) - 1],
                           converted_points[0],
                           self.colors[item.color])
             else:
@@ -119,10 +131,49 @@ class drawer:
             item2 = items[edge.index2]
             if item1.color == item2.color:
                 color = self.colors[item1.color]
-            self.draw_edge_from_coordinate_to_coordinate(item1.coordinate,
-                                                         item2.coordinate,
-                                                         color,
-                                                         line_func)
+
+            relative_point1 = euclidean_coordinates.coordinate_relative_to_coordinate(item1.coordinate, center)
+            native_point1 = relative_point1.to_native_coordinate_with_scale(self.scale)
+            relative_point2 = euclidean_coordinates.coordinate_relative_to_coordinate(item2.coordinate, center)
+            native_point2 = relative_point2.to_native_coordinate_with_scale(self.scale)
+
+            angular_distance = native_point2.phi - native_point1.phi
+
+            converted_points = []
+            if edge.edge_points_are_valid:
+                converted_points = edge.edge_points
+            else:
+                render_detail = 100
+                center = euclidean_coordinates.euclidean_coordinate(\
+                    self.canvas.winfo_width() / 2.0, \
+                    self.canvas.winfo_height() / 2.0)
+
+                line_points = native_coordinates.render_points_for_line_from_to(native_point1, native_point2)
+
+                for i in range(len(line_points)):
+                    converted_point = line_points[i].to_euclidean_coordinate_with_scale(self.scale)
+                    euclidean_line_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_point)
+                    converted_points.append(euclidean_line_point)
+
+                edge.edge_points = converted_points
+                edge.edge_points_are_valid = True
+
+
+            for i in range(len(converted_points)):
+                if i > 0:
+                    line_func(converted_points[i - 1],
+                              converted_points[i],
+                              color)
+
+            if len(converted_points) > 2:
+                if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
+                    line_func(converted_points[len(converted_points) - 1],
+                              item2.coordinate,
+                              color)
+                else:
+                    line_func(converted_points[len(converted_points) - 1],
+                              item1.coordinate,
+                              color)
 
     def draw_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
 
@@ -191,42 +242,6 @@ class drawer:
                                        start = math.degrees(start_angle), \
                                        extent = math.degrees(end_angle - start_angle),
                                        width = width)
-
-    def draw_edge_from_coordinate_to_coordinate(self, coord1, coord2, color, line_func):
-        render_detail = 100
-        center = euclidean_coordinates.euclidean_coordinate(\
-            self.canvas.winfo_width() / 2.0, \
-            self.canvas.winfo_height() / 2.0)
-
-        relative_point1 = euclidean_coordinates.coordinate_relative_to_coordinate(coord1, center)
-        native_point1 = relative_point1.to_native_coordinate_with_scale(self.scale)
-
-        relative_point2 = euclidean_coordinates.coordinate_relative_to_coordinate(coord2, center)
-        native_point2 = relative_point2.to_native_coordinate_with_scale(self.scale)
-
-        angular_distance = native_point2.phi - native_point1.phi
-
-        line_points = native_coordinates.render_points_for_line_from_to(native_point1, native_point2)
-        converted_points = []
-
-        for i in range(len(line_points)):
-            converted_point = line_points[i].to_euclidean_coordinate_with_scale(self.scale)
-            euclidean_line_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_point)
-            converted_points.append(euclidean_line_point)
-
-            if i > 0:
-                line_func(converted_points[i - 1],
-                          converted_points[i],
-                          color)
-        if len(converted_points) > 2:
-            if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
-                line_func(converted_points[render_detail - 1],
-                          coord2,
-                          color)
-            else:
-                line_func(converted_points[render_detail - 1],
-                          coord1,
-                          color)
 
     def draw_line_from_coordinate_to_coordinate(self, coord1, coord2, color):
         self.canvas.create_line(coord1.x, \
