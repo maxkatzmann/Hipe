@@ -91,7 +91,7 @@ def update_status_label():
     global items
     global selected_nodes
 
-    status_label_text = ""
+    status_label_text = "Current radius: " + "{:1.4f}".format(current_circle_size) + "\n"
 
     if len(selected_nodes) > 0:
         for selected_node in selected_nodes:
@@ -158,14 +158,15 @@ def mouse_dragged(event):
 
         # If the item is a circle, its circle points need to move now.
         if drawing.is_circle_item(item):
-            item.circle_points_are_valid = False
+            item.circle_points = []
 
         items[selected_nodes[0]] = item
 
         # If the item is part of an edge, the edge needs to be updated.
         for edge in edges:
             if edge.index1 == selected_nodes[0] or edge.index2 == selected_nodes[0]:
-                edge.edge_points_are_valid = False
+                edge.edge_points = []
+                edge.hypercycle_points = None
 
     update_status_label()
     redraw()
@@ -191,9 +192,17 @@ def shift_right_mouse_pressed(event):
     redraw()
 
 def mouse_scrolled_with_delta(delta):
+    global edges
     global selected_nodes
     global current_circle_size
 
+    # Updating the current_circle size when the mouse is scrolled
+    current_circle_size += 0.1 * delta
+    if current_circle_size < 0.1:
+        current_circle_size = 0.1
+
+    # However, if the user selected a circle and scrolled, we change the
+    # current_circle_size to this circle's radius and update it afterwards
     for selected_node in selected_nodes:
         item = items[selected_node]
         if drawing.is_circle_item(item):
@@ -204,7 +213,15 @@ def mouse_scrolled_with_delta(delta):
                 current_circle_size = 0.1
 
             item.radius = current_circle_size
+            item.circle_points = []
             items[selected_node] = item
+
+        # We also adapt the radii of selected hypercycles
+        for edge in edges:
+            if edge.index1 == selected_node or edge.index2 == selected_node:
+                if edge.hypercycle_radius > 0:
+                    edge.hypercycle_radius = current_circle_size
+                    edge.hypercycle_points = None
 
     update_status_label()
     redraw()
@@ -322,17 +339,24 @@ def h_pressed(event):
     if len(selected_nodes) == 2:
         selected_node1 = selected_nodes[0]
         selected_node2 = selected_nodes[1]
-        edge = (selected_node1, selected_node2)
-        inverse_edge = (selected_node2, selected_node1)
 
-        edge_exists = False
-        if edge in edges:
-            edge_exists = True
-        elif inverse_edge in edges:
-            edge = inverse_edge
-            edge_exists = True
+        edge_index = -1
+        for index, edge in enumerate(edges):
+            if (edge.index1 == selected_node1 and edge.index2 == selected_node2) or (edge.index2 == selected_node1 and edge.index1 == selected_node2):
+                edge_index = index
+                break
 
-        if not edge_exists:
+        if edge_index >= 0:
+
+            # If the edge already had a hypercycle, we now remove it
+            if edge.hypercycle_radius > 0:
+                edge.hypercycle_radius = 0
+                edge.hypercycle_points = None
+            else:
+                edges[edge_index].hypercycle_radius = current_circle_size
+        else:
+            edge = drawing.edge(selected_node1, selected_node2)
+            edge.hypercycle_radius = current_circle_size
             edges.append(edge)
 
         redraw()
@@ -364,14 +388,15 @@ def r_pressed(event):
 
             # If the item is a circle, its circle points need to move now.
             if drawing.is_circle_item(item):
-                item.circle_points_are_valid = False
+                item.circle_points = []
 
             items[selected_nodes[i]] = item
 
             # If the item is part of an edge, the edge needs to be updated.
             for edge in edges:
                 if edge.index1 == selected_nodes[i] or edge.index2 == selected_nodes[i]:
-                    edge.edge_points_are_valid = False
+                    edge.edge_points = []
+                    edge.hypercycle_points = None
 
         update_status_label()
         redraw()
@@ -438,6 +463,9 @@ usage_label.pack(side = BOTTOM, anchor=W)
 
 status_label = Label(canvas, text = "", justify=RIGHT)
 status_label.pack(side = TOP, anchor=E)
+
+# So we see the initial circle size
+update_status_label()
 
 while True:
     try:

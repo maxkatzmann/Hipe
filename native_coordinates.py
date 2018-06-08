@@ -20,7 +20,7 @@ import math
 import euclidean_coordinates
 import collections
 
-sampled_hypercycle = collections.namedtuple("sampled_hypercycle", ["upper_samples", "lower_samples"])
+hypercycle_points = collections.namedtuple("hypercycle_points", ["upper_samples", "lower_samples"])
 
 # Polar Coordinates
 class polar_coordinate:
@@ -53,9 +53,12 @@ def coordinate_rotated_around_origin_by_angle(coordinate, angle):
 
 def distance_between(coord1, coord2):
     delta_phi = math.pi - math.fabs(math.pi - math.fabs(coord1.phi - coord2.phi))
-    return math.acosh(\
-    math.cosh(coord1.r) * math.cosh(coord2.r) \
-    - math.sinh(coord1.r) * math.sinh(coord2.r) * math.cos(delta_phi));
+    try:
+        return math.acosh(\
+                          math.cosh(coord1.r) * math.cosh(coord2.r) \
+                          - math.sinh(coord1.r) * math.sinh(coord2.r) * math.cos(delta_phi));
+    except ValueError:
+        return 0
 
 def coordinate_mirrored_on_x_axis(coordinate):
     return polar_coordinate(coordinate.r, -(coordinate.phi - (2.0 * math.pi)))
@@ -198,6 +201,7 @@ def render_points_for_circle_with_center_and_radius(center, radius, scale):
     return circle_points
 
 def render_points_for_hypercycle_around_points(point1, point2, radius):
+
     # Rotate the points such that the first lies on the x-axis We don't
     # actually move the first point, as we can infer everything we know from
     # its current position.
@@ -224,9 +228,9 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
     lower_sample_points = []
 
     for i in range(render_detail):
-        current_x = translated_point2.r / render_detail
-        upper_sample_point = coordinte_translated_along_x_axis_by_hyperbolic_distance(reference_point, current_x)
-        upper_sample_points.append(sample_point)
+        current_x = i * (translated_point2.r / render_detail)
+        upper_sample_point = coordinate_translated_along_x_axis_by_hyperbolic_distance(reference_point, current_x)
+        upper_sample_points.append(upper_sample_point)
         lower_sample_point = polar_coordinate(upper_sample_point.r,
                                               2.0 * math.pi - upper_sample_point.phi)
         lower_sample_points.append(lower_sample_point)
@@ -236,8 +240,8 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
         upper_sample_point = upper_sample_points[index]
         lower_sample_point = lower_sample_points[index]
 
-        rotated_upper = coordinate_rotated_around_origin_by_angle(upper_ample_point, -rotation_angle2)
-        rotated_lower = coordinate_rotated_around_origin_by_angle(lower_ample_point, -rotation_angle2)
+        rotated_upper = coordinate_rotated_around_origin_by_angle(upper_sample_point, -rotation_angle2)
+        rotated_lower = coordinate_rotated_around_origin_by_angle(lower_sample_point, -rotation_angle2)
 
         translated_upper = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_upper, -translation_distance)
         translated_lower = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_lower, -translation_distance)
@@ -248,5 +252,5 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
         upper_sample_points[index] = final_upper
         lower_sample_points[index] = final_lower
 
-    return sampled_hypercycle(upper_samples = upper_sample_points,
-                              lower_samples = lower_sample_points)
+    return hypercycle_points(upper_samples = upper_sample_points,
+                             lower_samples = lower_sample_points)

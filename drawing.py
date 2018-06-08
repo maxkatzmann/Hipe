@@ -33,15 +33,14 @@ class circle:
         self.radius = radius
         self.color = color
         self.circle_points = []
-        self.circle_points_are_valid = False
 
 class edge:
     def __init__(self, index1, index2):
         self.index1 = index1
         self.index2 = index2
         self.edge_points = []
-        self.edge_points_are_valid = False
-        self.has_hypercycle = False
+        self.hypercycle_radius = 0
+        self.hypercycle_points = None
 
     def __str__(self):
         return "("  + str(self.index1) + ", " + str(self.index2) + ")"
@@ -90,7 +89,7 @@ class drawer:
 
                 converted_points = []
 
-                if item.circle_points_are_valid:
+                if len(item.circle_points) > 0:
                     converted_points = item.circle_points
                 else:
                     circle_size = item.radius
@@ -105,7 +104,6 @@ class drawer:
                         euclidean_circle_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_point)
                         converted_points.append(euclidean_circle_point)
                     item.circle_points = converted_points
-                    item.circle_points_are_valid = True
 
                 for i in range(len(converted_points)):
                     if i > 0:
@@ -140,13 +138,10 @@ class drawer:
             angular_distance = native_point2.phi - native_point1.phi
 
             converted_points = []
-            if edge.edge_points_are_valid:
+            if len(edge.edge_points) > 0:
                 converted_points = edge.edge_points
             else:
                 render_detail = 100
-                center = euclidean_coordinates.euclidean_coordinate(\
-                    self.canvas.winfo_width() / 2.0, \
-                    self.canvas.winfo_height() / 2.0)
 
                 line_points = native_coordinates.render_points_for_line_from_to(native_point1, native_point2)
 
@@ -156,8 +151,6 @@ class drawer:
                     converted_points.append(euclidean_line_point)
 
                 edge.edge_points = converted_points
-                edge.edge_points_are_valid = True
-
 
             for i in range(len(converted_points)):
                 if i > 0:
@@ -174,6 +167,47 @@ class drawer:
                     line_func(converted_points[len(converted_points) - 1],
                               item1.coordinate,
                               color)
+
+            # Drawing the hypercycle if there is one
+            if edge.hypercycle_radius > 0:
+
+                hypercycle_upper_points = []
+                hypercycle_lower_points = []
+
+                if not edge.hypercycle_points is None:
+                    hypercycle_upper_points = edge.hypercycle_points.upper_samples
+                    hypercycle_lower_points = edge.hypercycle_points.lower_samples
+                else:
+                    hypercycle_points = native_coordinates.render_points_for_hypercycle_around_points(native_point1,
+                                                                                                      native_point2,
+                                                                                                      edge.hypercycle_radius)
+
+                    # The hypercycle_points are in native coordinates, now we
+                    # have to convert them to the canvas.
+                    for i in range(len(hypercycle_points.upper_samples)):
+                        upper_sample = hypercycle_points.upper_samples[i]
+                        lower_sample = hypercycle_points.lower_samples[i]
+
+                        converted_upper_point = upper_sample.to_euclidean_coordinate_with_scale(self.scale)
+                        euclidean_upper_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_upper_point)
+
+                        converted_lower_point = lower_sample.to_euclidean_coordinate_with_scale(self.scale)
+                        euclidean_lower_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_lower_point)
+
+                        hypercycle_upper_points.append(euclidean_upper_point)
+                        hypercycle_lower_points.append(euclidean_lower_point)
+
+                    edge.hypercycle_points = native_coordinates.hypercycle_points(upper_samples = hypercycle_upper_points,
+                                                                                  lower_samples = hypercycle_lower_points)
+
+                for i in range(len(hypercycle_upper_points)):
+                    if i > 0:
+                        line_func(hypercycle_upper_points[i],
+                                  hypercycle_upper_points[i - 1],
+                                  color)
+                        line_func(hypercycle_lower_points[i],
+                                  hypercycle_lower_points[i - 1],
+                                  color)
 
     def draw_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
 
