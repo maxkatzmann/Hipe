@@ -1,7 +1,7 @@
-## HyperVis
+## Hipe
 
-HyperVis is a Python tool that visualizes circles and lines in hyperbolic space using its
-native representation.
+Hipe is a Python tool that visualizes drawings in hyperbolic space
+using the native representation.  Its controls are inspired by [Ipe](https://github.com/otfried/ipe).
 
 ![Screenshot](screenshot.png)
 
@@ -11,32 +11,58 @@ native representation.
 1. Download the code from this repository.
 
 # Usage
-Launch the tool by calling `python3 HyperVis.py`
+Launch the tool by calling `python3 Hipe.py`
 
 # Controls
-* `Right Click` adds a circle centered at the current location of the mouse
-* `Shift Right Click` adds a point without a circle
-* `Left Click` on a point selects the point and the circle that it is centered in
-* `Shift Left Click` adds to selection
-* `Mouse Drag` moves the circle on the plane
-* `BackSpace` deletes a selected point
-* `Mouse Wheel` or `+` or `-` changes the size of the selected circle
-* `O` adds a circle centered at the origin
-* `E` adds an edge between all selected points (press again to remove)
-* `H` adds a hypercycle (partially) around 2 selected nodes (press again to remove)
-* `G` adds a circle centered at the origin that contains a grid (press again to remove)
-* `R` sets the radius of all selected points to the one of the first selected point
-* `C` cycles through the colors of the selected circle `[Black, Green, Red, Blue, Orange and Magenta]`
-* `S` prints the drawing as SVG 
-* `I` prints the drawing as Ipe 
-* `D` Delete everything
+Different ways of manipulating the drawing is split into different modes.  A red bar beneath the corresponding button indicates which mode you are in.  Each mode can be activated by either pressing the corresponding button or by pressing the key in square brackets.
+
+## Select
+The select mode is used to select objects and manipulate the selection.  The shortcut key is `S`.  The primary selection (red) is the last object selected.  Secondary selections are marked purple.
+
+* `Mouse 1`: Selects the object within the selection radius (indicated by a magenta circle) that is closest to the mouse cursor.
+* `Shift Mouse 1`: Adds to the selection.
+* `Space`: Pressing space while pressing the mouse button down cycles through the objects within the selection radius.  If the object is a circle it will be highlighted in magenta.
+* `E`: Adds/removes an edge between two selected objects.
+* `R`: Sets the radii of all selected objects to match the radius of the primary selection.
+
+## Translate
+The translate mode is used to translate the primary selection.  The shortcut key is `T`.
+
+* `Mouse Drag`: Moves the primary selection to the current cursor position.  Upon further dragging the object follows the mouse cursor.
+
+## Mark
+The mark mode is used to add points to the canvas.  The shortcut key is `M`.
+
+* `Mouse 1`: Add a point at the current cursor position..
+
+## Circle
+The circle mode is used to add circles to the canvas.  The shortcut key is `O`.  A newly added circle will have the `current radius`, which can be adjusted using the mouse wheel or the `+` / `-` keys.
+
+* `Mouse 1`: Add a point at the current cursor position.
+
+## Polygon
+The polygon mode is used to create polygons, i.e., points (marks) that
+are connected by edges, to the canvas.  The shortcut key is `P`.
+
+* `Mouse 1`: Adds a point at the current cursor position.  And another point at the same position that will now follow the mouse cursor.
+* `Mouse 2`: Places the point currently following the mouse and closes the polygon.
+* `Shift Mouse 2`: Places the point currently following the mouse without closing the polygon.
+
+## Mode independent controls
+These actions are available in all modes:
+
+* `G`: Add/remove a grid within a circle of the `current radius` centered at the origin.
+* `C`: Change the color of selected objects by cycling through `[Black, Green, Red, Blue and Orange]`
+* `D`: Clear all, i.e., remove all objects.
+* `Mouse wheel` / `+` / `-`: Change the `current radius`.
+* `Backspace`: Delete the currently selected objects.
+* `Escape`: Clear selection.
 
 # Notes
 * The blue point at the center represents the origin of the hyperbolic plane
-* New circles are black and have the same size as the last circle that was edited
 * Trying to add an edge between two already connected points will delete the edge between them
 * An edge between items of the same color will also have this color
-* When using `S` or `I` a folder called `output` will be created where HyperVis was launched. The drawing will be saved as SVG or Ipe file using the current timestamp as filename.
+* When saving a drawing as Ipe or SVG a folder called `output` will be created where Hipe was launched. The drawing will be saved as SVG or Ipe file using the current timestamp as filename.
 
 # Known Issues
-* Tk does not seem to recognize mouse scroll events in macOS High Sierra
+* Tk does not seem to recognize mouse scroll events in macOS High Sierra or later.

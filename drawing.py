@@ -50,8 +50,11 @@ def is_circle_item(item):
 
 class drawer:
 
-    colors = ["black", "red", "green", "blue", "orange", "magenta"];
+    colors = ["black", "red", "green", "blue", "orange"];
     selection_border_size = 1
+    selection_radius = 30
+    primary_selection_color = "red"
+    secondary_selection_color = "magenta"
     point_size = 3
 
     def __init__(self, canvas, scale):
@@ -67,14 +70,17 @@ class drawer:
         native_point = relative_point.to_native_coordinate_with_scale(self.scale)
         return native_point
 
-    def draw(self, items, edges, selected_nodes):
+    def draw(self, items, edges, selected_nodes, mouse_location):
         self.draw_with_functions(items,
                                  edges,
                                  selected_nodes,
+                                 mouse_location,
                                  self.draw_line_from_coordinate_to_coordinate,
                                  self.draw_circle)
+        if mouse_location is not None:
+            self.draw_circle(mouse_location, self.selection_radius, 0.0, 2.0 * math.pi, False, "", "magenta", 1.0)
 
-    def draw_with_functions(self, items, edges, selected_nodes, line_func, circle_func):
+    def draw_with_functions(self, items, edges, selected_nodes, mouse_location, line_func, circle_func):
         center = euclidean_coordinates.euclidean_coordinate(\
             self.canvas.winfo_width() / 2.0, \
             self.canvas.winfo_height() / 2.0)
@@ -118,8 +124,17 @@ class drawer:
         # Drawing the circles
         for index, item in enumerate(items):
             if is_circle_item(item):
+
+                # Check whether we should highlight the whole circle instead of only the point.
+                should_highlight_primary_selection = False
+
                 if index in selected_nodes:
-                    circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], "red", self.selection_border_size)
+                    if selected_nodes[-1] == index:
+                        circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.primary_selection_color, self.primary_selection_color, self.selection_border_size)
+                        if mouse_location is not None:
+                            should_highlight_primary_selection = True
+                    else:
+                        circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.secondary_selection_color, self.secondary_selection_color, self.selection_border_size)
                 else:
                     circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], self.colors[item.color], self.selection_border_size)
 
@@ -141,23 +156,32 @@ class drawer:
                         converted_points.append(euclidean_circle_point)
                     item.circle_points = converted_points
 
+                circle_color = self.colors[item.color]
+
+                if should_highlight_primary_selection:
+                    circle_color = self.secondary_selection_color
+
                 for i in range(len(converted_points)):
                     if i > 0:
                         line_func(converted_points[i - 1],
                                   converted_points[i],
-                                  self.colors[item.color],
+                                  circle_color,
                                   2.0)
 
                 line_func(converted_points[len(converted_points) - 1],
                           converted_points[0],
-                          self.colors[item.color],
+                          circle_color,
                           2.0)
             else:
+                # Drawing the points.
                 relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(item.coordinate, center)
                 native_point = relative_point.to_native_coordinate_with_scale(self.scale)
 
                 if index in selected_nodes:
-                    circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], "red", self.selection_border_size)
+                    if selected_nodes[len(selected_nodes) - 1] == index:
+                        circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.primary_selection_color, self.primary_selection_color, self.selection_border_size)
+                    else:
+                        circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.secondary_selection_color, self.secondary_selection_color, self.selection_border_size)
                 else:
                     circle_func(item.coordinate, self.point_size, 0.0, 2.0 * math.pi, True, self.colors[item.color], self.colors[item.color], self.selection_border_size)
 

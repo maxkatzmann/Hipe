@@ -41,6 +41,7 @@ class printer:
         self.drawer.draw_with_functions(items,
                                         edges,
                                         selected_nodes,
+                                        None,
                                         self.print_ipe_line,
                                         self.print_ipe_circle)
 
@@ -73,6 +74,7 @@ class printer:
         self.drawer.draw_with_functions(items,
                                         edges,
                                         selected_nodes,
+                                        None,
                                         self.print_svg_line,
                                         self.print_svg_circle)
 
