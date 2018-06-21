@@ -263,7 +263,11 @@ def set_coordinate_of_item_to(item_index, coordinate):
 def save_as_ipe():
     call(["mkdir", "-p", "output"])
     old_stdout = sys.stdout
-    filename = './output/' + str(datetime.datetime.now()) + '.ipe'
+    time_string = str(datetime.datetime.now())
+    time_string = time_string.replace(" ", "_")
+    time_string = time_string.replace(":", "-")
+    time_string = time_string.replace(".", "-")
+    filename = './output/' + time_string + '.ipe'
     sys.stdout = open(filename, "w")
     print_ipe()
     sys.stdout = old_stdout
@@ -282,7 +286,11 @@ def print_ipe():
 def save_as_svg():
     call(["mkdir", "-p", "output"])
     old_stdout = sys.stdout
-    filename = './output/' + str(datetime.datetime.now()) + '.svg'
+    time_string = str(datetime.datetime.now())
+    time_string = time_string.replace(" ", "_")
+    time_string = time_string.replace(":", "-")
+    time_string = time_string.replace(".", "-")
+    filename = './output/' + time_string + '.svg'
     sys.stdout = open(filename, "w")
     print_svg()
     sys.stdout = old_stdout
@@ -896,6 +904,8 @@ canvas.bind("<Button-3>", right_mouse_down)
 canvas.bind("<Shift-Button-3>", shift_right_mouse_down)
 canvas.bind("<Button-4>", mouse_scroll_up)
 canvas.bind("<Button-5>", mouse_scroll_down)
+canvas.bind("<Shift-Button-4>", shift_mouse_scroll_up)
+canvas.bind("<Shift-Button-5>", shift_mouse_scroll_down)
 canvas.bind("<Motion>", mouse_moved)
 root.bind("<BackSpace>", delete_pressed)
 root.bind("<space>", space_pressed)
