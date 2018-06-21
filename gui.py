@@ -37,7 +37,7 @@ class gui:
         stvar = tk.StringVar()
         stvar.set("one")
 
-        frame = Frame(self.root)
+        frame = Frame(self.root, bg = "white")
         frame.pack(side = TOP, anchor = W)
 
         self.select_button = Button(frame, text = "[S]elect")
@@ -120,11 +120,15 @@ class gui:
                                 background = "white")
         self.canvas.pack(fill = BOTH, expand = YES)
 
-        self.help_label = Label(self.canvas, text = "", justify = LEFT)
-        # self.help_label.pack(side = BOTTOM, anchor = W)
+        self.help_label = Label(self.canvas,
+                                text = "",
+                                bg = "white",
+                                justify = LEFT)
 
         self.help_is_shown = False
 
-        self.status_label = Label(self.canvas, text = "", justify = LEFT)
+        self.status_label = Label(self.canvas,
+                                  text = "",
+                                  bg = "white",
+                                  justify = LEFT)
         self.status_label.pack(side = TOP, anchor = W)
-
