@@ -50,7 +50,7 @@ def is_circle_item(item):
 
 class drawer:
 
-    colors = ["black", "red", "green", "blue", "orange"];
+    colors = ["black", "green", "blue", "purple", "deep pink", "red4", "orange", "gold"];
     selection_border_size = 1
     selection_radius = 30
     primary_selection_color = "red"
