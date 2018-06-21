@@ -54,7 +54,7 @@ These actions are available in all modes:
 * `G`: Add/remove a grid within a circle of the `current circle radius` centered at the origin.
 * `C`: Change the color of selected objects by cycling through `[Black, Green, Red, Blue and Orange]`
 * `D`: Clear all, i.e., remove all objects.
-* `Z`: Undo.
+* `Z / Ctrl-Z`: Undo.
 * `Mouse wheel` / `+` / `-`: Change the `current circle radius`.
 * `Shift mouse wheel` / `*` / `_`: Change the radial coordinate of selected objects.
 * `Backspace`: Delete the currently selected objects.
