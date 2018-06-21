@@ -21,6 +21,16 @@ from tkinter import *
 
 class gui:
 
+    def toggle_help(self):
+        self.help_is_shown = not self.help_is_shown
+        self.show_help_label(self.help_is_shown)
+
+    def show_help_label(self, show):
+        if show:
+            self.help_label.pack(side = BOTTOM, anchor = W)
+        else:
+            self.help_label.pack_forget()
+
     def __init__(self, root):
         self.root = root
         self.entry = tk.Entry(root)
@@ -94,6 +104,16 @@ class gui:
         self.svg_save_button = Button(frame, text = "Save as SVG")
         self.svg_save_button.grid(row = 0, column = 7, sticky = E)
 
+        Label(frame,
+              text = " | ",
+              foreground = "black",
+              background = "white").grid(row = 0,
+                                         column = 8)
+
+        self.help_button = Button(frame, text = "?",
+                                  command = self.toggle_help)
+        self.help_button.grid(row = 0, column = 9, sticky = E)
+
         self.canvas = tk.Canvas(root,
                                 width = 800,
                                 height = 600,
@@ -101,7 +121,10 @@ class gui:
         self.canvas.pack(fill = BOTH, expand = YES)
 
         self.help_label = Label(self.canvas, text = "", justify = LEFT)
-        self.help_label.pack(side = BOTTOM, anchor = W)
+        # self.help_label.pack(side = BOTTOM, anchor = W)
+
+        self.help_is_shown = False
 
         self.status_label = Label(self.canvas, text = "", justify = LEFT)
         self.status_label.pack(side = TOP, anchor = W)
+

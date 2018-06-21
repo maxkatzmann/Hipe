@@ -75,12 +75,12 @@ class drawer:
                                  edges,
                                  selected_nodes,
                                  mouse_location,
-                                 self.draw_line_from_coordinate_to_coordinate,
+                                 self.draw_path,
                                  self.draw_circle)
         if mouse_location is not None:
             self.draw_circle(mouse_location, self.selection_radius, 0.0, 2.0 * math.pi, False, "", "magenta", 1.0)
 
-    def draw_with_functions(self, items, edges, selected_nodes, mouse_location, line_func, circle_func):
+    def draw_with_functions(self, items, edges, selected_nodes, mouse_location, path_func, circle_func):
         center = euclidean_coordinates.euclidean_coordinate(\
             self.canvas.winfo_width() / 2.0, \
             self.canvas.winfo_height() / 2.0)
@@ -114,9 +114,10 @@ class drawer:
                     euclidean_inner_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_inner_point)
                     euclidean_outer_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, converted_outer_point)
 
-                    line_func(euclidean_inner_point,
-                              euclidean_outer_point,
-                              grid_color)
+                    path_func([euclidean_inner_point, euclidean_outer_point],
+                              False,
+                              grid_color,
+                              1.0)
 
             # Drawing the inner radius of the inner most layer
             circle_func(center, self.scale * (self.grid_radius - number_of_layers * layer_width), 0.0, 2.0 * math.pi, True, "", grid_color, 1.0)
@@ -161,17 +162,7 @@ class drawer:
                 if should_highlight_primary_selection:
                     circle_color = self.secondary_selection_color
 
-                for i in range(len(converted_points)):
-                    if i > 0:
-                        line_func(converted_points[i - 1],
-                                  converted_points[i],
-                                  circle_color,
-                                  2.0)
-
-                line_func(converted_points[len(converted_points) - 1],
-                          converted_points[0],
-                          circle_color,
-                          2.0)
+                path_func(converted_points, True, circle_color, 2.0)
             else:
                 # Drawing the points.
                 relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(item.coordinate, center)
@@ -215,24 +206,13 @@ class drawer:
 
                 edge.edge_points = converted_points
 
-            for i in range(len(converted_points)):
-                if i > 0:
-                    line_func(converted_points[i - 1],
-                              converted_points[i],
-                              color,
-                              2.0)
-
             if len(converted_points) > 2:
                 if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
-                    line_func(converted_points[len(converted_points) - 1],
-                              item2.coordinate,
-                              color,
-                              2.0)
+                    converted_points.append(item2.coordinate)
                 else:
-                    line_func(converted_points[len(converted_points) - 1],
-                              item1.coordinate,
-                              color,
-                              2.0)
+                    converted_points.append(item1.coordinate)
+
+            path_func(converted_points, False, color, 2.0)
 
             # Drawing the hypercycle if there is one
             if edge.hypercycle_radius > 0:
@@ -266,16 +246,8 @@ class drawer:
                     edge.hypercycle_points = native_coordinates.hypercycle_points(upper_samples = hypercycle_upper_points,
                                                                                   lower_samples = hypercycle_lower_points)
 
-                for i in range(len(hypercycle_upper_points)):
-                    if i > 0:
-                        line_func(hypercycle_upper_points[i],
-                                  hypercycle_upper_points[i - 1],
-                                  color,
-                                  2.0)
-                        line_func(hypercycle_lower_points[i],
-                                  hypercycle_lower_points[i - 1],
-                                  color,
-                                  2.0)
+                path_func(hypercycle_upper_points, False, color, 2.0)
+                path_func(hypercycle_lower_points, False, color, 2.0)
 
     def draw_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
 
@@ -344,6 +316,20 @@ class drawer:
                                        start = math.degrees(start_angle),
                                        extent = math.degrees(end_angle - start_angle),
                                        width = width)
+
+    def draw_path(self, points, is_closed, color, width):
+        for i in range(1, len(points)):
+            self.draw_line_from_coordinate_to_coordinate(points[i - 1],
+                                                         points[i],
+                                                         color,
+                                                         width)
+
+        if is_closed:
+            self.draw_line_from_coordinate_to_coordinate(points[-1],
+                                                         points[0],
+                                                         color,
+                                                         width)
+
 
     def draw_line_from_coordinate_to_coordinate(self, coord1, coord2, color, width = 1):
         self.canvas.create_line(coord1.x,

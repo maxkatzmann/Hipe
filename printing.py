@@ -42,23 +42,34 @@ class printer:
                                         edges,
                                         selected_nodes,
                                         None,
-                                        self.print_ipe_line,
+                                        self.print_ipe_path,
                                         self.print_ipe_circle)
 
         print("</page>\n" +\
               "</ipe>")
 
-    def print_ipe_line(self, coord1, coord2, color, width = 1):
-        print("<path stroke=\"" + str(color) + "\">\n" +\
-              str(coord1.x) + " " + str(coord1.y) + " m\n" +\
-              str(coord2.x) + " " + str(coord2.y) + " l\n" +\
-              "</path>")
+    # def print_ipe_line(self, coord1, coord2, color, width = 1):
+    #     print("<path stroke=\"" + str(color) + "\">\n" +\
+    #           str(coord1.x) + " " + str(coord1.y) + " m\n" +\
+    #           str(coord2.x) + " " + str(coord2.y) + " l\n" +\
+    #           "</path>")
 
     def print_ipe_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
         if len(fill_color) > 0:
             print("<path stroke=\"" + str(fill_color) + "\" fill=\"" + str(fill_color) + "\"> " + str(radius) + " 0 0 " + str(radius) + " " + str(center.x) + " " + str(center.y) + " e </path>")
         else:
             print("<path stroke=\"" + str(border_color) + "\"> " + str(radius) + " 0 0 " + str(radius) + " " + str(center.x) + " " + str(center.y) + " e </path>")
+
+    def print_ipe_path(self, points, is_closed, color, width):
+        print("<path stroke=\"" + color + "\">")
+        if len(points) > 0:
+            print(str(points[0].x) + " " + str(points[0].y) + " m")
+        for index in range(1, len(points)):
+            print(str(points[index].x) + " " + str(points[index].y) + " l")
+
+        if is_closed:
+            print("h")
+        print("</path>")
 
     ### SVG ###
 
@@ -75,16 +86,31 @@ class printer:
                                         edges,
                                         selected_nodes,
                                         None,
-                                        self.print_svg_line,
+                                        self.print_svg_path,
                                         self.print_svg_circle)
 
         print("\n</svg>\n")
 
-    def print_svg_line(self, coord1, coord2, color, width = 1):
-        print("<line x1=\"" + str(coord1.x) + "\" y1=\"" + str(coord1.y) + "\" x2=\"" + str(coord2.x) + "\" y2=\"" + str(coord2.y) + "\" stroke=\"" + str(color) + "\" stroke-width=\"" + str(width) + "\" opacity=\"1.0\"/>\n")
+    # def print_svg_line(self, coord1, coord2, color, width = 1):
+    #     print("<line x1=\"" + str(coord1.x) + "\" y1=\"" + str(coord1.y) + "\" x2=\"" + str(coord2.x) + "\" y2=\"" + str(coord2.y) + "\" stroke=\"" + str(color) + "\" stroke-width=\"" + str(width) + "\" opacity=\"1.0\"/>\n")
 
     def print_svg_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
         if len(fill_color) > 0:
             print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"" + str(fill_color) + "\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
         else:
-            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"white\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
+            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"none\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
+
+    def print_svg_path(self, points, is_closed, color, width):
+        path_string = "<path d =\""
+
+        if len(points) > 0:
+            path_string += "M " + str(points[0].x) + "," + str(points[0].y) + " "
+
+            print(len(points))
+            for index in range(1, len(points)):
+                path_string += "L " + str(points[index].x) + "," + str(points[index].y) + " "
+        if is_closed:
+            path_string += "Z"
+
+        path_string += "\" stroke = \"" + color + "\" stroke-width = \"" + str(width) + "\" fill=\"none\"/>"
+        print(path_string)

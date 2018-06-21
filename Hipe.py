@@ -18,6 +18,7 @@
 
 from tkinter import *
 # Reference: https://info host.nmt.edu/tcc/help/pubs/tkinter/web/index.html
+import copy
 import datetime
 import math
 import sys
@@ -125,6 +126,50 @@ mouse_location = None
 current_possible_selections = []
 current_polygon = []
 
+drawing_history = [([], [])]
+
+# Save the current drawing state so we can back to it by undoing later steps.
+def save_current_state():
+    global items
+    global edges
+    global drawing_history
+    drawing_history.append((copy.deepcopy(items), copy.deepcopy(edges)))
+
+def undo(event):
+    global items
+    global edges
+    global selected_nodes
+    global mouse_location
+    global current_possible_selections
+    global current_polygon
+    global drawing_history
+
+    if len(drawing_history) > 2:
+        drawing_history.pop()
+        (old_items, old_edges) = drawing_history[-1]
+
+        items = old_items
+        edges = old_edges
+        selected_nodes = []
+        mouse_location = None
+        current_possible_selections = []
+        current_polygon = []
+        set_status_label_text("Undid last action.")
+        redraw()
+    elif len(drawing_history) == 2:
+        drawing_history = [([], [])]
+
+        items = []
+        edges = []
+        selected_nodes = []
+        mouse_location = None
+        current_possible_selections = []
+        current_polygon = []
+        set_status_label_text("Undid last action.")
+        redraw()
+    else:
+        set_status_label_text("Cannot undo anymore.")
+
 def resize(event):
     drawer.clear()
     redraw()
@@ -152,7 +197,12 @@ def add_circle_at(position):
     items.append(circle)
     index = len(items) - 1
     selected_nodes = [index]
+
+    # After adding a circle, we save the current state to the history.
+    save_current_state()
+
     redraw()
+    update_status_label()
     return index
 
 def add_point_at(position):
@@ -163,7 +213,12 @@ def add_point_at(position):
     items.append(point)
     index = len(items) - 1
     selected_nodes = [index]
+
+    # After adding a point, we save the current state to the history.
+    save_current_state()
+
     redraw()
+    update_status_label()
     return index
 
 def add_edge_between(node1, node2):
@@ -179,6 +234,9 @@ def add_edge_between(node1, node2):
 
     if not edge_already_present:
         edges.append(new_edge)
+
+    # After adding an edge, we save the current state to the history.
+    save_current_state()
 
     redraw()
 
@@ -244,6 +302,8 @@ def print_svg():
 def converted_angle_from_native_angle(angle):
     return (3.0 * math.pi - angle) % (2.0 * math.pi)
 
+# Labels
+
 def set_help_label_text(text):
     global help_label
     help_label['text'] = text
@@ -277,13 +337,14 @@ def update_help_label():
     else:
         help_text = \
             "Mouse 1: Add polygon point\n" +\
-            "Mouse 2: Close polygon\n" +\
-            "Shift Mouse 2: Stop adding points"
+            "Mouse 2: Stop adding points\n" +\
+            "Shift Mouse 2: Close polygon"
 
     help_text += "\n" +\
         "G: Add/remove grid\n" +\
         "C: Change color of selected objects\n" +\
         "D: Clear all\n" +\
+        "Z: Undo\n" +\
         "Mouse wheel / (+,-): Change current radius\n" +\
         "Backspace: Delete selected objects\n" +\
         "Esc: Clear selection"
@@ -294,7 +355,7 @@ def update_status_label():
     global items
     global selected_nodes
 
-    status_label_text = "Current radius: " + "{:1.4f}".format(current_circle_size) + "\n"
+    status_label_text = "Current circle radius: " + "{:1.4f}".format(current_circle_size) + "\n"
 
     if len(selected_nodes) > 0:
         for selected_node in selected_nodes:
@@ -313,11 +374,11 @@ def mouse_down(event):
     global drawer
     global current_mode
     global mouse_location
+    global selected_nodes
 
     current_mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
 
     if current_mode == Mode.select:
-        global selected_nodes
         global current_possible_selections
 
         selected_nodes = []
@@ -355,6 +416,7 @@ def mouse_down(event):
         add_point_at(current_mouse_location)
     elif current_mode == Mode.polygon:
         global current_polygon
+
         if len(current_polygon) == 0:
             index1 = add_point_at(current_mouse_location)
             index2 = add_point_at(current_mouse_location)
@@ -367,6 +429,8 @@ def mouse_down(event):
             current_polygon.append(index2)
             add_edge_between(index1, index2)
 
+        selected_nodes = current_polygon
+
         redraw()
 
 def right_mouse_down(event):
@@ -374,18 +438,25 @@ def right_mouse_down(event):
 
     if current_mode == Mode.polygon:
         global current_polygon
-        if len(current_polygon) > 2:
-            index1 = current_polygon[-1]
-            index2 = current_polygon[0]
-            add_edge_between(index1, index2)
         current_polygon = []
+
+        # After finishing a polygon, we save the current state to the history.
+        save_current_state()
 
 def shift_right_mouse_down(event):
     global current_mode
 
     if current_mode == Mode.polygon:
         global current_polygon
+
+        if len(current_polygon) > 2:
+            index1 = current_polygon[-1]
+            index2 = current_polygon[0]
+            add_edge_between(index1, index2)
         current_polygon = []
+
+        # After closing a polygon, we save the current state to the history.
+        save_current_state()
 
 def mouse_up(event):
     global current_mode
@@ -395,6 +466,9 @@ def mouse_up(event):
         mouse_location = None
         current_possbile_selections = []
         redraw()
+    elif current_mode == Mode.translate:
+        # After we're done translating, we save the current state to the history.
+        save_current_state()
 
 def shift_mouse_down(event):
     global current_mode
@@ -506,6 +580,44 @@ def mouse_scrolled_with_delta(delta):
     update_status_label()
     redraw()
 
+def shift_mouse_scrolled_with_delta(delta):
+    global edges
+    global selected_nodes
+
+    radius_delta = 0.1 * delta
+
+    center = euclidean_coordinates.euclidean_coordinate(canvas.winfo_width() / 2.0,
+                                                        canvas.winfo_height() / 2.0)
+
+    for selected_node in selected_nodes:
+        item = items[selected_node]
+        coordinate = item.coordinate
+        relative_coordinate = euclidean_coordinates.coordinate_relative_to_coordinate(coordinate, center)
+        native_coordinate = relative_coordinate.to_native_coordinate_with_scale(drawer.scale)
+        new_radius = native_coordinate.r + radius_delta
+        if new_radius < 0.0:
+            new_radius = 0.0
+        native_coordinate.r = new_radius
+
+        relative_modified_point = native_coordinate.to_euclidean_coordinate_with_scale(drawer.scale)
+        modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, relative_modified_point)
+        item.coordinate = modified_point
+
+        # If the item is a circle, its circle points need to move now.
+        if drawing.is_circle_item(item):
+            item.circle_points = []
+
+        items[selected_node] = item
+
+        # If the item is part of an edge, the edge needs to be updated.
+        for edge in edges:
+            if edge.index1 == selected_node or edge.index2 == selected_node:
+                edge.edge_points = []
+                edge.hypercycle_points = None
+
+    update_status_label()
+    redraw()
+
 def mouse_scrolled(event):
     mouse_scrolled_with_delta(event.delta)
 
@@ -514,6 +626,15 @@ def mouse_scroll_up(event):
 
 def mouse_scroll_down(event):
     mouse_scrolled_with_delta(-1)
+
+def shift_mouse_scrolled(event):
+    shift_mouse_scrolled_with_delta(event.delta)
+
+def shift_mouse_scroll_up(event):
+    shift_mouse_scrolled_with_delta(1)
+
+def shift_mouse_scroll_down(event):
+    shift_mouse_scrolled_with_delta(-1)
 
 # Keyboard Interaction
 def delete_pressed(event):
@@ -594,7 +715,10 @@ def c_pressed(event):
         selected_node_color_index %= len(drawer.colors)
         item.color = selected_node_color_index
         items[selected_node] = item
-        redraw()
+
+    # After changing colors, we save the current state to the history.
+    save_current_state()
+    redraw()
 
 def o_pressed(event):
     global current_circle_size
@@ -692,6 +816,7 @@ def r_pressed(event):
 
     if current_mode == Mode.select or current_mode == Mode.translate:
         global selected_nodes
+        global items
         global edges
 
         if len(selected_nodes) > 1:
@@ -722,6 +847,9 @@ def r_pressed(event):
                     if edge.index1 == selected_nodes[i] or edge.index2 == selected_nodes[i]:
                         edge.edge_points = []
                         edge.hypercycle_points = None
+
+            # After adjusting circle sizes collectively, we save the current state to the history.
+            save_current_state()
 
             update_status_label()
             redraw()
@@ -773,6 +901,7 @@ root.bind("<BackSpace>", delete_pressed)
 root.bind("<space>", space_pressed)
 root.bind("<Escape>", escape_pressed)
 root.bind("<MouseWheel>", mouse_scrolled)
+root.bind("<Shift-MouseWheel>", shift_mouse_scrolled)
 root.bind("c", c_pressed)
 root.bind("d", d_pressed)
 root.bind("e", e_pressed)
@@ -786,6 +915,11 @@ root.bind("s", s_pressed)
 root.bind("t", t_pressed)
 root.bind("+", mouse_scroll_up)
 root.bind("-", mouse_scroll_down)
+root.bind("*", shift_mouse_scroll_up)
+root.bind("_", shift_mouse_scroll_down)
+root.bind("Command-z", undo)
+root.bind("Control-z", undo)
+root.bind("z", undo)
 
 scale = 35.0
 drawer = drawing.drawer(canvas, scale)

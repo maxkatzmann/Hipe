@@ -36,7 +36,7 @@ The mark mode is used to add points to the canvas.  The shortcut key is `M`.
 * `Mouse 1`: Add a point at the current cursor position..
 
 ## Circle
-The circle mode is used to add circles to the canvas.  The shortcut key is `O`.  A newly added circle will have the `current radius`, which can be adjusted using the mouse wheel or the `+` / `-` keys.
+The circle mode is used to add circles to the canvas.  The shortcut key is `O`.  A newly added circle will have the `current circle radius`, which can be adjusted using the mouse wheel or the `+` / `-` keys.
 
 * `Mouse 1`: Add a point at the current cursor position.
 
@@ -45,16 +45,18 @@ The polygon mode is used to create polygons, i.e., points (marks) that
 are connected by edges, to the canvas.  The shortcut key is `P`.
 
 * `Mouse 1`: Adds a point at the current cursor position.  And another point at the same position that will now follow the mouse cursor.
-* `Mouse 2`: Places the point currently following the mouse and closes the polygon.
-* `Shift Mouse 2`: Places the point currently following the mouse without closing the polygon.
+* `Mouse 2`: Places the point currently following the mouse without closing the polygon.
+* `Shift Mouse 2`: Places the point currently following the mouse and closes the polygon.
 
 ## Mode independent controls
 These actions are available in all modes:
 
-* `G`: Add/remove a grid within a circle of the `current radius` centered at the origin.
+* `G`: Add/remove a grid within a circle of the `current circle radius` centered at the origin.
 * `C`: Change the color of selected objects by cycling through `[Black, Green, Red, Blue and Orange]`
 * `D`: Clear all, i.e., remove all objects.
-* `Mouse wheel` / `+` / `-`: Change the `current radius`.
+* `Z`: Undo.
+* `Mouse wheel` / `+` / `-`: Change the `current circle radius`.
+* `Shift mouse wheel` / `*` / `_`: Change the radial coordinate of selected objects.
 * `Backspace`: Delete the currently selected objects.
 * `Escape`: Clear selection.
 
@@ -63,6 +65,7 @@ These actions are available in all modes:
 * Trying to add an edge between two already connected points will delete the edge between them
 * An edge between items of the same color will also have this color
 * When saving a drawing as Ipe or SVG a folder called `output` will be created where Hipe was launched. The drawing will be saved as SVG or Ipe file using the current timestamp as filename.
+* The undo functionality is pretty rough.  Sometimes Hipe adds some intermediate steps when drawing, which means you might have to undo multiple times until certain actions are actually undone.
 
 # Known Issues
 * Tk does not seem to recognize mouse scroll events in macOS High Sierra or later.
