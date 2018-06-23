@@ -64,7 +64,7 @@ These actions are available in all modes:
 
 Snapping helps you in matching the radii or angular coordinates of other objects while translating an object.  By default snapping is turned off.  It can be turned on, by pressing the Snap button or the keys `F1`, `F2`, `F3` or `F4`.
 
-![Snapping Demo](scnapping_demo.gif)
+![Snapping Demo](snapping_demo.gif)
 
 # Notes
 * The blue point at the center represents the origin of the hyperbolic plane
@@ -72,6 +72,7 @@ Snapping helps you in matching the radii or angular coordinates of other objects
 * An edge between items of the same color will also have this color
 * When saving a drawing as Ipe or SVG a folder called `output` will be created where Hipe was launched. The drawing will be saved as SVG or Ipe file using the current timestamp as filename.
 * The undo functionality is pretty rough.  Sometimes Hipe adds some intermediate steps when drawing, which means you might have to undo multiple times until certain actions are actually undone.
+* The snapping performance is not good at the moment, which is why the feature is turned off by default.  Just enabled it shortly when you want to snap something. ;)
 
 # Known Issues
 * Tk does not seem to recognize mouse scroll events in macOS High Sierra or later.
