@@ -41,7 +41,7 @@ def update_mode_indicator():
     global current_mode
 
     unhighlighted_color = "white"
-    highlighted_color = "red"
+    highlighted_color = gui.menu_color
 
     gui.select_label.configure(foreground = unhighlighted_color, background = unhighlighted_color)
     gui.translate_label.configure(foreground = unhighlighted_color, background = unhighlighted_color)
@@ -126,6 +126,7 @@ mouse_location = None
 current_possible_selections = []
 current_polygon = []
 
+# Drawing History
 drawing_history = [([], [])]
 
 # Save the current drawing state so we can back to it by undoing later steps.
@@ -170,6 +171,26 @@ def undo(event):
     else:
         set_status_label_text("Cannot undo anymore.")
 
+### Snapping
+
+# While dragging an item can snap to other vertices with
+# respect to the radial or angular coordinate.
+
+is_snap_enabled = False
+
+snapped_item_radial = None
+snapped_item_angular = None
+
+def toggle_snap():
+    global is_snap_enabled
+    global gui
+    is_snap_enabled = not is_snap_enabled
+
+    if is_snap_enabled:
+        gui.snap_button.configure(text = "[F1-4] Snap: On")
+    else:
+        gui.snap_button.configure(text = "[F1-4] Snap: Off")
+
 def resize(event):
     drawer.clear()
     redraw()
@@ -179,12 +200,16 @@ def redraw():
     global edges
     global selected_nodes
     global mouse_location
+    global snapped_item_radial
+    global snapped_item_angular
 
     drawer.clear()
     drawer.draw(items,
                 edges,
                 selected_nodes,
-                mouse_location)
+                mouse_location,
+                snapped_item_radial,
+                snapped_item_angular)
 
 def add_circle_at(position):
     global current_circle_size
@@ -478,6 +503,13 @@ def mouse_up(event):
         # After we're done translating, we save the current state to the history.
         save_current_state()
 
+        # When we're done translating we don't show any snapping lines anymore.
+        global snapped_item_radial
+        global snapped_item_angular
+        snapped_item_radial = None
+        snapped_item_angular = None
+        redraw()
+
 def shift_mouse_down(event):
     global current_mode
     global mouse_location
@@ -542,14 +574,60 @@ def mouse_dragged(event):
     global current_mode
 
     if current_mode == Mode.translate:
-        global selected_nodes
-        global edges
-
         mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
+        translate_with_location(mouse_location)
 
-        if len(selected_nodes) > 0:
+def translate_with_location(location):
+    global selected_nodes
+    global is_snap_enabled
+
+    if len(selected_nodes) > 0:
+
+        if is_snap_enabled:
+            global snapped_item_radial
+            global snapped_item_angular
+            global items
+
+            # At first we assume that the dragged item doesn't snap to anything.
+            snapped_item_radial = None
+            snapped_item_angular = None
+
+            dragged_item_index = selected_nodes[-1]
+            new_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(location)
+
+            minimum_radial_distance = sys.float_info.max
+            minimum_angular_distance = sys.float_info.max
+
+            for index, item in enumerate(items):
+                # We don't snap to the vertex that is currently being dragged.
+                if not index == dragged_item_index:
+                    other_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(item.coordinate)
+
+                    radial_distance = abs(other_coordinate.r - new_coordinate.r)
+                    angular_distance = new_coordinate.angular_distance_to(other_coordinate)
+
+                    if radial_distance < 0.5 and radial_distance < minimum_radial_distance:
+                        snapped_item_radial = index
+                        minimum_radial_distance = radial_distance
+                    elif angular_distance < 0.15:
+                        snapped_item_angular = index
+                        minimum_angular_distance = angular_distance
+
+                # If we found something to snap to, we set the coordinates
+                # of the current item to the snapped ones.
+                if snapped_item_radial is not None:
+                    snapped_radial_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(items[snapped_item_radial].coordinate)
+                    new_coordinate.r = snapped_radial_coordinate.r
+                if snapped_item_angular is not None:
+                    snapped_angular_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(items[snapped_item_angular].coordinate)
+                    new_coordinate.phi = snapped_angular_coordinate.phi
+
+                new_euclidean_coordinate = drawer.canvas_point_from_hyperbolic_coordinate(new_coordinate)
+                set_coordinate_of_item_to(dragged_item_index, new_euclidean_coordinate)
+
+        else:
             item_index = selected_nodes[-1]
-            set_coordinate_of_item_to(item_index, mouse_location)
+            set_coordinate_of_item_to(item_index, location)
 
         update_status_label()
 
@@ -868,8 +946,6 @@ def s_pressed(event):
 def t_pressed(event):
     set_mode_translate()
 
-
-
 # Creating the GUI
 root = Tk()
 root.title("Hipe")
@@ -882,6 +958,8 @@ gui.translate_button.configure(command = set_mode_translate)
 gui.mark_button.configure(command = set_mode_mark)
 gui.circle_button.configure(command = set_mode_circle)
 gui.polygon_button.configure(command = set_mode_polygon)
+
+gui.snap_button.configure(command = toggle_snap)
 
 gui.ipe_save_button.configure(command = save_as_ipe)
 gui.svg_save_button.configure(command = save_as_svg)
@@ -930,6 +1008,10 @@ root.bind("_", shift_mouse_scroll_down)
 root.bind("Command-z", undo)
 root.bind("Control-z", undo)
 root.bind("z", undo)
+root.bind("F1", toggle_snap)
+root.bind("F2", toggle_snap)
+root.bind("F3", toggle_snap)
+root.bind("F4", toggle_snap)
 
 scale = 35.0
 drawer = drawing.drawer(canvas, scale)

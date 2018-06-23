@@ -32,12 +32,14 @@ class polar_coordinate:
         return "(r = " + str(self.r) + ", phi = " + str(self.phi) + ")"
 
     def to_euclidean_coordinate_with_scale(self, scale):
-        return euclidean_coordinates.euclidean_coordinate(\
-        self.r * math.cos(self.phi) * scale, \
-        self.r * math.sin(self.phi) * scale)
+        return euclidean_coordinates.euclidean_coordinate(self.r * math.cos(self.phi) * scale,
+                                                          self.r * math.sin(self.phi) * scale)
 
     def to_euclidean_coordinate(self):
         return to_euclidean_coordinate_with_scale(1.0)
+
+    def angular_distance_to(self, other):
+        return math.pi - abs(math.pi - abs(self.phi - other.phi))
 
 def coordinate_rotated_around_origin_by_angle(coordinate, angle):
     if coordinate.r == 0:

@@ -37,6 +37,8 @@ class gui:
         stvar = tk.StringVar()
         stvar.set("one")
 
+        self.menu_color = "blue"
+
         frame = Frame(self.root, bg = "white")
         frame.pack(side = TOP, anchor = W)
 
@@ -59,36 +61,36 @@ class gui:
 
         self.select_label = Label(frame,
                                   text = highlight_text,
-                                  foreground = "red",
-                                  background = "red",
+                                  foreground = self.menu_color,
+                                  background = self.menu_color,
                                   font = "Helvetica 1 bold italic")
         self.select_label.grid(row = 1, column = 0)
 
         self.translate_label = Label(frame,
                                      text = highlight_text,
-                                     foreground = "red",
-                                     background = "red",
+                                     foreground = self.menu_color,
+                                     background = self.menu_color,
                                      font = "Helvetica 1 bold italic")
         self.translate_label.grid(row = 1, column = 1)
 
         self.mark_label = Label(frame,
                                 text = highlight_text,
-                                foreground = "red",
-                                background = "red",
+                                foreground = self.menu_color,
+                                background = self.menu_color,
                                 font = "Helvetica 1 bold italic")
         self.mark_label.grid(row = 1, column = 2)
 
         self.circle_label = Label(frame,
                                   text = highlight_text,
-                                  foreground = "red",
-                                  background = "red",
+                                  foreground = self.menu_color,
+                                  background = self.menu_color,
                                   font = "Helvetica 1 bold italic")
         self.circle_label.grid(row = 1, column = 3)
 
         self.polygon_label = Label(frame,
                                   text = highlight_text,
-                                  foreground = "red",
-                                  background = "red",
+                                  foreground = self.menu_color,
+                                  background = self.menu_color,
                                   font = "Helvetica 1 bold italic")
         self.polygon_label.grid(row = 1, column = 4)
 
@@ -98,21 +100,30 @@ class gui:
               background = "white").grid(row = 0,
                                          column = 5)
 
-        self.ipe_save_button = Button(frame, text = "Save as Ipe")
-        self.ipe_save_button.grid(row = 0, column = 6, sticky = E)
-
-        self.svg_save_button = Button(frame, text = "Save as SVG")
-        self.svg_save_button.grid(row = 0, column = 7, sticky = E)
+        self.snap_button = Button(frame, text = "[F1-4] Snap: Off")
+        self.snap_button.grid(row = 0, column = 6)
 
         Label(frame,
               text = " | ",
               foreground = "black",
               background = "white").grid(row = 0,
-                                         column = 8)
+                                         column = 7)
+
+        self.ipe_save_button = Button(frame, text = "Save as Ipe")
+        self.ipe_save_button.grid(row = 0, column = 8, sticky = E)
+
+        self.svg_save_button = Button(frame, text = "Save as SVG")
+        self.svg_save_button.grid(row = 0, column = 9, sticky = E)
+
+        Label(frame,
+              text = " | ",
+              foreground = "black",
+              background = "white").grid(row = 0,
+                                         column = 10)
 
         self.help_button = Button(frame, text = "?",
                                   command = self.toggle_help)
-        self.help_button.grid(row = 0, column = 9, sticky = E)
+        self.help_button.grid(row = 0, column = 11, sticky = E)
 
         self.canvas = tk.Canvas(root,
                                 width = 800,

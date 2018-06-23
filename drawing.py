@@ -62,6 +62,18 @@ class drawer:
         self.scale = scale
         self.grid_radius = 0
 
+    def canvas_point_from_hyperbolic_coordinate(self, point):
+
+        center = euclidean_coordinates.euclidean_coordinate(self.canvas.winfo_width() / 2.0,
+                                                            self.canvas.winfo_height() / 2.0)
+
+        euclidean_point = point.to_euclidean_coordinate_with_scale(self.scale)
+
+        euclidean_point.x = center.x - euclidean_point.x
+        euclidean_point.y = center.y - euclidean_point.y
+
+        return euclidean_point
+
     def hyperbolic_coordinate_from_canvas_point(self, point):
         center = euclidean_coordinates.euclidean_coordinate(\
             self.canvas.winfo_width() / 2.0, \
@@ -70,20 +82,80 @@ class drawer:
         native_point = relative_point.to_native_coordinate_with_scale(self.scale)
         return native_point
 
-    def draw(self, items, edges, selected_nodes, mouse_location):
+    def draw(self,
+             items,
+             edges,
+             selected_nodes,
+             mouse_location,
+             snapped_item_radial,
+             snapped_item_angular):
         self.draw_with_functions(items,
                                  edges,
                                  selected_nodes,
                                  mouse_location,
                                  self.draw_path,
                                  self.draw_circle)
+
+        # Drawing the selection circle, if there is one.
         if mouse_location is not None:
-            self.draw_circle(mouse_location, self.selection_radius, 0.0, 2.0 * math.pi, False, "", "magenta", 1.0)
+            self.draw_circle(mouse_location, self.selection_radius, 0.0, 2.0 * math.pi, False, "", self.secondary_selection_color, 1.0)
+
+        # Drawing the snapping guides if there are any.
+        if len(selected_nodes) > 0:
+
+            center = euclidean_coordinates.euclidean_coordinate(self.canvas.winfo_width() / 2.0,
+                                                                self.canvas.winfo_height() / 2.0)
+            selected_index = selected_nodes[-1]
+            selected_coordinate = items[selected_index].coordinate
+            selected_coordinate_relative = euclidean_coordinates.coordinate_relative_to_coordinate(selected_coordinate, center)
+            radius = selected_coordinate_relative.to_native_coordinate_with_scale(1.0).r
+            selected_coordinate_native = self.hyperbolic_coordinate_from_canvas_point(selected_coordinate)
+
+            if snapped_item_radial is not None:
+                snapped_coordinate = items[snapped_item_radial].coordinate
+                snapped_coordinate_native = self.hyperbolic_coordinate_from_canvas_point(snapped_coordinate)
+
+                # The radii of the two coordinate should match since we snapped to it.
+                # We now draw the circle connecting the two
+                circle_from_select_to_snapped = True
+
+                signed_angular_distance = snapped_coordinate_native.phi - selected_coordinate_native.phi
+                if signed_angular_distance > 0:
+                    if signed_angular_distance < math.pi:
+                        circle_from_select_to_snapped = False
+                else:
+                    if signed_angular_distance < -math.pi:
+                        circle_from_select_to_snapped = False
+
+                start_angle = selected_coordinate_native.phi
+                end_angle = snapped_coordinate_native.phi
+
+                if not circle_from_select_to_snapped:
+                    start_angle = snapped_coordinate_native.phi
+                    end_angle = selected_coordinate_native.phi
+
+                drawing_start_angle = ((math.pi - start_angle) + (2.0 * math.pi)) % (2.0 * math.pi)
+                drawing_end_angle = ((math.pi - end_angle) + (2.0 * math.pi)) % (2.0 * math.pi)
+
+                self.draw_circle(center,
+                                 radius,
+                                 drawing_start_angle,
+                                 drawing_end_angle,
+                                 circle_from_select_to_snapped,
+                                 "",
+                                 self.secondary_selection_color,
+                                 1.0)
+
+            if snapped_item_angular is not None:
+                snapped_coordinate = items[snapped_item_angular].coordinate
+                self.draw_line_from_coordinate_to_coordinate(selected_coordinate,
+                                                             snapped_coordinate,
+                                                             self.secondary_selection_color,
+                                                             1.0)
 
     def draw_with_functions(self, items, edges, selected_nodes, mouse_location, path_func, circle_func):
-        center = euclidean_coordinates.euclidean_coordinate(\
-            self.canvas.winfo_width() / 2.0, \
-            self.canvas.winfo_height() / 2.0)
+        center = euclidean_coordinates.euclidean_coordinate(self.canvas.winfo_width() / 2.0,
+                                                            self.canvas.winfo_height() / 2.0)
 
         # Drawing the origin
         circle_func(center, self.point_size, 0.0, 2.0 * math.pi, True, "blue", "blue", 1.0)
@@ -308,14 +380,35 @@ class drawer:
                                        outline = border_color,
                                        width = width)
             else:
-                self.canvas.create_arc(upper_left.x,
-                                       upper_left.y,
-                                       lower_right.x,
-                                       lower_right.y,
-                                       style = ARC,
-                                       start = math.degrees(start_angle),
-                                       extent = math.degrees(end_angle - start_angle),
-                                       width = width)
+                if start_angle > end_angle:
+                    self.canvas.create_arc(upper_left.x,
+                                           upper_left.y,
+                                           lower_right.x,
+                                           lower_right.y,
+                                           style = ARC,
+                                           start = math.degrees(start_angle),
+                                           extent = math.degrees(2.0 * math.pi - start_angle),
+                                           outline = border_color,
+                                           width = width)
+                    self.canvas.create_arc(upper_left.x,
+                                           upper_left.y,
+                                           lower_right.x,
+                                           lower_right.y,
+                                           style = ARC,
+                                           start = 0.0,
+                                           extent = math.degrees(end_angle),
+                                           outline = border_color,
+                                           width = width)
+                else:
+                    self.canvas.create_arc(upper_left.x,
+                                           upper_left.y,
+                                           lower_right.x,
+                                           lower_right.y,
+                                           style = ARC,
+                                           start = math.degrees(start_angle),
+                                           extent = math.degrees(end_angle - start_angle),
+                                           outline = border_color,
+                                           width = width)
 
     def draw_path(self, points, is_closed, color, width):
         for i in range(1, len(points)):

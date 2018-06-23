@@ -60,6 +60,12 @@ These actions are available in all modes:
 * `Backspace`: Delete the currently selected objects.
 * `Escape`: Clear selection.
 
+## Snapping
+
+Snapping helps you in matching the radii or angular coordinates of other objects while translating an object.  By default snapping is turned off.  It can be turned on, by pressing the Snap button or the keys `F1`, `F2`, `F3` or `F4`.
+
+![Snapping Demo](scnapping_demo.gif)
+
 # Notes
 * The blue point at the center represents the origin of the hyperbolic plane
 * Trying to add an edge between two already connected points will delete the edge between them
