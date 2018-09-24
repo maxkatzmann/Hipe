@@ -161,46 +161,108 @@ def render_points_for_line_from_to(point1, point2):
             line_points.append(native_line_point)
         return line_points
 
+def render_points_for_circle_with_center_and_radius(center, radius):
+    render_detail = 200
 
-def render_points_for_circle_with_center_and_radius(center, radius, scale):
-    render_detail = 360
-    render_detail_half = render_detail / 2
+    # If the circle is centered at the origin, we simply draw a euclidean
+    # circle.
+    if center.r == 0.0:
 
-    additional_render_detail = math.floor(center.r * center.r)
-    render_detail_factor = 0
+        render_detail = 360
+        circle_points = []
+        step_size = (2.0 * math.pi) / render_detail
 
-    if center.r > 0:
-        render_detail_factor = min(1.0, 0.75 * scale / (center.r * center.r))
-    angular_point_distance = 2.0 * math.pi / render_detail
+        angle = 0.0
+        while angle < (2.0 * math.pi):
+            point = polar_coordinate(radius, angle)
+            circle_points.append(point)
+            angle = angle + step_size
+
+        return circle_points
+
+
+    # We first determine the points by pretending the node itself had angular
+    # coordinate 0.
+
+    r_min = max((radius - center.r), (center.r - radius))
+    r_max = center.r + radius
+
+    # Compute the render points that we can be sure of.
+    step_size = (r_max - r_min) / render_detail
 
     circle_points = []
-    for i in range(render_detail):
-        native_circle_point = polar_coordinate(radius, i * angular_point_distance)
-        circle_points.append(native_circle_point)
 
-        if i == render_detail_half:
-            for j in range(additional_render_detail):
-                native_circle_point = polar_coordinate(radius, \
-                i * angular_point_distance + j * (render_detail_factor * angular_point_distance / additional_render_detail))
-                circle_points.append(native_circle_point)
-        elif i == render_detail_half - 1:
-            for j in range(additional_render_detail):
-                native_circle_point = polar_coordinate(radius, \
-                (i + (1.0 - render_detail_factor)) * angular_point_distance + j * (render_detail_factor * angular_point_distance / additional_render_detail))
-                circle_points.append(native_circle_point)
-        elif abs(i - render_detail_half) <= 7 * render_detail_factor - 4:
-            for j in range(math.floor(additional_render_detail * render_detail_factor * render_detail_factor)):
-                native_circle_point = polar_coordinate(radius, \
-                i * angular_point_distance + j * (angular_point_distance / (additional_render_detail * render_detail_factor * render_detail_factor)))
-                circle_points.append(native_circle_point)
+    # We start computing the render points at the max radius towards the center
+    # of the disk, then copy and mirror all points on the x-axis.
+    r = r_max
+    theta = 0
 
+    additional_render_detail_threshold = 5.0 * step_size
+    additional_render_detail = 20
+
+    while r >= r_min:
+        try:
+            theta = math.acos((math.cosh(center.r) * math.cosh(r) - math.cosh(radius)) / (math.sinh(center.r) * math.sinh(r)))
+        except ValueError:
+            pass
+
+        point = polar_coordinate(r, theta)
+        circle_points.append(point)
+
+        # Additional render detail
+        if r >= r_min and r - r_min < additional_render_detail_threshold:
+            additional_step_size = step_size / additional_render_detail
+
+            additional_r = r - additional_step_size
+
+            while additional_r > r - step_size:
+
+                try:
+                    theta = math.acos((math.cosh(center.r) * math.cosh(additional_r) - math.cosh(radius)) / (math.sinh(center.r) * math.sinh(additional_r)))
+                except ValueError:
+                    pass
+
+                if additional_r >= r_min:
+                    additional_point = polar_coordinate(additional_r, theta)
+                    circle_points.append(additional_point)
+
+                additional_r = additional_r - additional_step_size
+
+
+        r = r - step_size
+
+    # Add the point on the ray through the origin and center. Depending on
+    # whether the origin is contained in the circle or not.
+    inner_point_angle = math.pi
+    if center.r > radius:
+        inner_point_angle = 0.0
+
+    inner_point = polar_coordinate(r_min, inner_point_angle)
+    circle_points.append(inner_point)
+
+    # Now we copy all points by mirroring them on the x-axis. We exclude the
+    # first and the last point, as they are lying on the x-axis. To obtain a
+    # valid path we need walk from the end of the vector to the start.
+    i = len(circle_points) - 2 # We don't need to add the inner point twice.
+    while i > 0:
+
+        native_circle_point = circle_points[i]
+        mirrored_point = polar_coordinate(native_circle_point.r, (2.0 * math.pi) - native_circle_point.phi)
+        circle_points.append(mirrored_point)
+        i = i - 1
+
+    # If r_min is smaller than r, then we need to draw part of the circle as an
+    # actual Euclidean circle.
+
+    # Finally we rotate all points around the origin to match the angular
+    # coordinate of the circle center.
     for i in range(len(circle_points)):
         native_circle_point = circle_points[i]
-        translated_point = coordinate_translated_along_x_axis_by_hyperbolic_distance(native_circle_point, center.r)
-        rotated_point = coordinate_rotated_around_origin_by_angle(translated_point, center.phi)
+        rotated_point = coordinate_rotated_around_origin_by_angle(native_circle_point, center.phi)
         circle_points[i] = rotated_point
 
     return circle_points
+
 
 def render_points_for_hypercycle_around_points(point1, point2, radius):
 

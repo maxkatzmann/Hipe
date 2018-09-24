@@ -859,6 +859,58 @@ def g_pressed(event):
 
     redraw()
 
+def capital_g_pressed(event):
+    if len(sys.argv) > 2:
+        graph_file_name = sys.argv[1]
+        embedding_file_name = sys.argv[2]
+
+        global items
+        global edges
+
+        # We're drawing adding the edges according to the
+        # indices in the edge list.
+        # If we already have items, we have to offset these
+        # indices.
+        index_offset = len(items)
+
+        embedding = dict()
+        with open(embedding_file_name, "rb") as embedding_file:
+            lines = embedding_file.readlines()
+
+            center = euclidean_coordinates.euclidean_coordinate(canvas.winfo_width() / 2.0,
+                                                                canvas.winfo_height() / 2.0)
+
+            for line in lines:
+                line = line.strip()
+                line_components = line.split()
+                if len(line_components) > 0:
+                    vertex = int(line_components[0])
+                    x = float(line_components[1]) * drawer.scale
+                    y = float(line_components[2]) * drawer.scale
+
+                    coordinate = euclidean_coordinates.euclidean_coordinate(center.x + x, center.y + y)
+                    # relative_coordinate = euclidean_coordinates.coordinate_relative_to_coordinate(coordinate, center)
+
+                    point = drawing.point(coordinate = coordinate, color = 0)
+                    items.append(point)
+
+        with open(graph_file_name, "rb") as graph_file:
+            lines = graph_file.readlines()
+
+            for line in lines:
+                line = line.strip()
+                line_components = line.split()
+
+                node1 = int(line_components[0]) + index_offset
+                node2 = int(line_components[1]) + index_offset
+
+                new_edge = drawing.edge(node1, node2)
+                edges.append(new_edge)
+
+        redraw()
+    else:
+        set_status_label_text("No graph files provided. Launch Hipe with: python3 Hipe.py path/to/edgelist.txt path/to/embedding.txt")
+
 def h_pressed(event):
     global current_mode
 
@@ -994,6 +1046,7 @@ root.bind("c", c_pressed)
 root.bind("d", d_pressed)
 root.bind("e", e_pressed)
 root.bind("g", g_pressed)
+root.bind("G", capital_g_pressed)
 root.bind("h", h_pressed)
 root.bind("m", m_pressed)
 root.bind("o", o_pressed)
@@ -1015,6 +1068,9 @@ root.bind("F4", toggle_snap)
 
 scale = 35.0
 drawer = drawing.drawer(canvas, scale)
+
+# Graph Input:
+
 
 while True:
     try:

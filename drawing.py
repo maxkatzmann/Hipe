@@ -220,8 +220,7 @@ class drawer:
                     native_point = self.hyperbolic_coordinate_from_canvas_point(item.coordinate)
 
                     circle_points = native_coordinates.render_points_for_circle_with_center_and_radius(native_point,
-                                                                                                   circle_size,
-                                                                                                   self.scale)
+                                                                                                       circle_size)
                     for i in range(len(circle_points)):
                         circle_point = circle_points[i]
                         converted_point = circle_point.to_euclidean_coordinate_with_scale(self.scale)
@@ -277,12 +276,6 @@ class drawer:
                     converted_points.append(euclidean_line_point)
 
                 edge.edge_points = converted_points
-
-            if len(converted_points) > 2:
-                if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
-                    converted_points.append(item2.coordinate)
-                else:
-                    converted_points.append(item1.coordinate)
 
             path_func(converted_points, False, color, 2.0)
 
