@@ -33,7 +33,7 @@ class euclidean_coordinate(object):
                                                   math.atan2(self.y / scale, self.x / scale) + math.pi)
 
     def to_native_coordinate(self):
-        return to_native_coordinate_with_scale(1.0)
+        return self.to_native_coordinate_with_scale(1.0)
 
 def coordinate_relative_to_coordinate(coord1, coord2):
     result = euclidean_coordinate(coord1.x - coord2.x, coord1.y - coord2.y)

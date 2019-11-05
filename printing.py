@@ -49,8 +49,9 @@ class printer:
               "</ipe>")
 
     def print_ipe_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
+
         if len(fill_color) > 0:
-            print("<path stroke=\"" + str(fill_color) + "\" fill=\"" + str(fill_color) + "\"> " + str(radius) + " 0 0 " + str(radius) + " " + str(center.x) + " " + str(center.y) + " e </path>")
+            print("<path stroke=\"" + str(border_color) + "\" fill=\"" + str(fill_color) + "\"> " + str(radius) + " 0 0 " + str(radius) + " " + str(center.x) + " " + str(center.y) + " e </path>")
         else:
             print("<path stroke=\"" + str(border_color) + "\"> " + str(radius) + " 0 0 " + str(radius) + " " + str(center.x) + " " + str(center.y) + " e </path>")
 
@@ -97,7 +98,6 @@ class printer:
         if len(points) > 0:
             path_string += "M " + str(points[0].x) + "," + str(points[0].y) + " "
 
-            print(len(points))
             for index in range(1, len(points)):
                 path_string += "L " + str(points[index].x) + "," + str(points[index].y) + " "
         if is_closed:

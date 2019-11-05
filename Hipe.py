@@ -36,6 +36,7 @@ Mode = Enum("Mode", "select translate mark circle polygon")
 
 # Mode Selection
 
+
 def update_mode_indicator():
     global gui
     global current_mode
@@ -43,22 +44,33 @@ def update_mode_indicator():
     unhighlighted_color = "white"
     highlighted_color = gui.menu_color
 
-    gui.select_label.configure(foreground = unhighlighted_color, background = unhighlighted_color)
-    gui.translate_label.configure(foreground = unhighlighted_color, background = unhighlighted_color)
-    gui.mark_label.configure(foreground = unhighlighted_color, background = unhighlighted_color)
-    gui.circle_label.configure(foreground = unhighlighted_color, background = unhighlighted_color)
-    gui.polygon_label.configure(foreground = unhighlighted_color, background = unhighlighted_color)
+    gui.select_label.configure(foreground=unhighlighted_color,
+                               background=unhighlighted_color)
+    gui.translate_label.configure(foreground=unhighlighted_color,
+                                  background=unhighlighted_color)
+    gui.mark_label.configure(foreground=unhighlighted_color,
+                             background=unhighlighted_color)
+    gui.circle_label.configure(foreground=unhighlighted_color,
+                               background=unhighlighted_color)
+    gui.polygon_label.configure(foreground=unhighlighted_color,
+                                background=unhighlighted_color)
 
     if current_mode == Mode.select:
-        gui.select_label.configure(foreground = highlighted_color, background = highlighted_color)
+        gui.select_label.configure(foreground=highlighted_color,
+                                   background=highlighted_color)
     elif current_mode == Mode.translate:
-        gui.translate_label.configure(foreground = highlighted_color, background = highlighted_color)
+        gui.translate_label.configure(foreground=highlighted_color,
+                                      background=highlighted_color)
     elif current_mode == Mode.mark:
-        gui.mark_label.configure(foreground = highlighted_color, background = highlighted_color)
+        gui.mark_label.configure(foreground=highlighted_color,
+                                 background=highlighted_color)
     elif current_mode == Mode.circle:
-        gui.circle_label.configure(foreground = highlighted_color, background = highlighted_color)
+        gui.circle_label.configure(foreground=highlighted_color,
+                                   background=highlighted_color)
     else:
-        gui.polygon_label.configure(foreground = highlighted_color, background = highlighted_color)
+        gui.polygon_label.configure(foreground=highlighted_color,
+                                    background=highlighted_color)
+
 
 def set_mode_select():
     global current_mode
@@ -72,6 +84,7 @@ def set_mode_select():
     update_mode_indicator()
     update_help_label()
 
+
 def set_mode_translate():
     global current_mode
     global current_polygon
@@ -83,6 +96,7 @@ def set_mode_translate():
 
     update_mode_indicator()
     update_help_label()
+
 
 def set_mode_mark():
     global current_mode
@@ -96,6 +110,7 @@ def set_mode_mark():
     update_mode_indicator()
     update_help_label()
 
+
 def set_mode_circle():
     global current_mode
     global current_polygon
@@ -108,12 +123,14 @@ def set_mode_circle():
     update_mode_indicator()
     update_help_label()
 
+
 def set_mode_polygon():
     global current_mode
 
     current_mode = Mode.polygon
     update_mode_indicator()
     update_help_label()
+
 
 ### Drawing
 
@@ -129,12 +146,14 @@ current_polygon = []
 # Drawing History
 drawing_history = [([], [])]
 
+
 # Save the current drawing state so we can back to it by undoing later steps.
 def save_current_state():
     global items
     global edges
     global drawing_history
     drawing_history.append((copy.deepcopy(items), copy.deepcopy(edges)))
+
 
 def undo(event):
     global items
@@ -171,6 +190,7 @@ def undo(event):
     else:
         set_status_label_text("Cannot undo anymore.")
 
+
 ### Snapping
 
 # While dragging an item can snap to other vertices with
@@ -181,19 +201,22 @@ is_snap_enabled = False
 snapped_item_radial = None
 snapped_item_angular = None
 
+
 def toggle_snap():
     global is_snap_enabled
     global gui
     is_snap_enabled = not is_snap_enabled
 
     if is_snap_enabled:
-        gui.snap_button.configure(text = "[F1-4] Snap: On")
+        gui.snap_button.configure(text="[F1-4] Snap: On")
     else:
-        gui.snap_button.configure(text = "[F1-4] Snap: Off")
+        gui.snap_button.configure(text="[F1-4] Snap: Off")
+
 
 def resize(event):
     drawer.clear()
     redraw()
+
 
 def redraw():
     global items
@@ -204,21 +227,18 @@ def redraw():
     global snapped_item_angular
 
     drawer.clear()
-    drawer.draw(items,
-                edges,
-                selected_nodes,
-                mouse_location,
-                snapped_item_radial,
-                snapped_item_angular)
+    drawer.draw(items, edges, selected_nodes, mouse_location,
+                snapped_item_radial, snapped_item_angular)
+
 
 def add_circle_at(position):
     global current_circle_size
     global items
     global selected_nodes
 
-    circle = drawing.circle(coordinate = position,
-                            radius = current_circle_size,
-                            color = 0)
+    circle = drawing.circle(coordinate=position,
+                            radius=current_circle_size,
+                            color=0)
     items.append(circle)
     index = len(items) - 1
     selected_nodes = [index]
@@ -230,11 +250,12 @@ def add_circle_at(position):
     update_status_label()
     return index
 
+
 def add_point_at(position):
     global items
     global selected_nodes
 
-    point = drawing.point(coordinate = position, color = 0)
+    point = drawing.point(coordinate=position, color=0)
     items.append(point)
     index = len(items) - 1
     selected_nodes = [index]
@@ -246,13 +267,16 @@ def add_point_at(position):
     update_status_label()
     return index
 
+
 def add_edge_between(node1, node2):
     global edges
     new_edge = drawing.edge(node1, node2)
 
     edge_already_present = False
     for edge in edges:
-        if (edge.index1 == node1 and edge.index2 == node2) or (edge.index2 == node1 and edge.index1 == node2):
+        if (edge.index1 == node1
+                and edge.index2 == node2) or (edge.index2 == node1
+                                              and edge.index1 == node2):
             edges.remove(edge)
             edge_already_present = True
             break
@@ -264,6 +288,7 @@ def add_edge_between(node1, node2):
     save_current_state()
 
     redraw()
+
 
 def set_coordinate_of_item_to(item_index, coordinate):
     item = items[item_index]
@@ -277,13 +302,29 @@ def set_coordinate_of_item_to(item_index, coordinate):
 
     # If the item is part of an edge, the edge needs to be updated.
     for edge in edges:
-        if edge.index1 == selected_nodes[-1] or edge.index2 == selected_nodes[-1]:
+        if edge.index1 == selected_nodes[-1] or edge.index2 == selected_nodes[
+                -1]:
             edge.edge_points = []
             edge.hypercycle_points = None
 
     redraw()
 
+
+def remove_current_polygon():
+    global items
+    global edges
+    global current_polygon
+
+    sorted_polygon_points = sorted(current_polygon)
+
+    for polygon_node in reversed(sorted_polygon_points):
+        del items[polygon_node]
+
+    current_polygon = []
+
+
 ### Saving ###
+
 
 def save_as_ipe():
     call(["mkdir", "-p", "output"])
@@ -299,14 +340,14 @@ def save_as_ipe():
     global status_label
     set_status_label_text("Drawing saved as " + filename)
 
+
 def print_ipe():
     global items
     global edges
     global selected_nodes
     printer = printing.printer(drawer)
-    printer.print_ipe(items,
-                      edges,
-                      selected_nodes)
+    printer.print_ipe(items, edges, selected_nodes)
+
 
 def save_as_svg():
     call(["mkdir", "-p", "output"])
@@ -322,28 +363,32 @@ def save_as_svg():
     global status_label
     set_status_label_text("Drawing saved as " + filename)
 
+
 def print_svg():
     global items
     global edges
     global selected_nodes
     printer = printing.printer(drawer)
-    printer.print_svg(items,
-                      edges,
-                      selected_nodes)
+    printer.print_svg(items, edges, selected_nodes)
+
 
 # Internally, the angle 0 is on the left. We want it on the right.
 def converted_angle_from_native_angle(angle):
     return (3.0 * math.pi - angle) % (2.0 * math.pi)
 
+
 # Labels
+
 
 def set_help_label_text(text):
     global help_label
     help_label['text'] = text
 
+
 def set_status_label_text(text):
     global status_label
     status_label['text'] = text
+
 
 def update_help_label():
     global current_mode
@@ -384,23 +429,34 @@ def update_help_label():
 
     set_help_label_text(help_text)
 
+
 def update_status_label():
     global items
     global selected_nodes
 
-    status_label_text = "Current circle radius: " + "{:1.4f}".format(current_circle_size) + "\n"
+    status_label_text = "Current circle radius: " + "{:1.4f}".format(
+        current_circle_size) + "\n"
 
     if len(selected_nodes) > 0:
         for selected_node in selected_nodes:
             item = items[selected_node]
             if drawing.is_circle_item(items[selected_node]):
-                circle_center = drawer.hyperbolic_coordinate_from_canvas_point(item.coordinate)
-                status_label_text += "Circle Center: (" + "{:1.4f}".format(circle_center.r) + ", " + "{:1.4f}".format(converted_angle_from_native_angle(circle_center.phi)) + "), Radius: " + "{:1.4}".format(item.radius) + "\n"
+                circle_center = drawer.hyperbolic_coordinate_from_canvas_point(
+                    item.coordinate)
+                status_label_text += "Circle Center: (" + "{:1.4f}".format(
+                    circle_center.r) + ", " + "{:1.4f}".format(
+                        converted_angle_from_native_angle(circle_center.phi)
+                    ) + "), Radius: " + "{:1.4}".format(item.radius) + "\n"
             else:
-                coordinate = drawer.hyperbolic_coordinate_from_canvas_point(item.coordinate)
-                status_label_text += "Point: (" + "{:1.4f}".format(coordinate.r) + ", " + "{:1.4f}".format(converted_angle_from_native_angle(coordinate.phi)) + ")" + "\n"
+                coordinate = drawer.hyperbolic_coordinate_from_canvas_point(
+                    item.coordinate)
+                status_label_text += "Point: (" + "{:1.4f}".format(
+                    coordinate.r) + ", " + "{:1.4f}".format(
+                        converted_angle_from_native_angle(
+                            coordinate.phi)) + ")" + "\n"
 
     set_status_label_text(status_label_text)
+
 
 # Mouse Interaction
 def mouse_down(event):
@@ -409,7 +465,8 @@ def mouse_down(event):
     global mouse_location
     global selected_nodes
 
-    current_mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
+    current_mouse_location = euclidean_coordinates.euclidean_coordinate(
+        event.x, event.y)
 
     if current_mode == Mode.select:
         global current_possible_selections
@@ -427,13 +484,14 @@ def mouse_down(event):
         possible_selections = []
 
         for index, item in enumerate(items):
-            distance = euclidean_coordinates.distance_between(current_mouse_location, item.coordinate)
+            distance = euclidean_coordinates.distance_between(
+                current_mouse_location, item.coordinate)
 
             if distance < drawer.selection_radius:
                 possible_selections.append((index, distance))
 
         possible_selections = sorted(possible_selections,
-                                             key = functools.cmp_to_key(distance_cmp))
+                                     key=functools.cmp_to_key(distance_cmp))
         current_possible_selections = [x[0] for x in possible_selections]
 
         if len(current_possible_selections) > 0:
@@ -466,6 +524,7 @@ def mouse_down(event):
 
         redraw()
 
+
 def right_mouse_down(event):
     global current_mode
 
@@ -475,6 +534,7 @@ def right_mouse_down(event):
 
         # After finishing a polygon, we save the current state to the history.
         save_current_state()
+
 
 def shift_right_mouse_down(event):
     global current_mode
@@ -490,6 +550,7 @@ def shift_right_mouse_down(event):
 
         # After closing a polygon, we save the current state to the history.
         save_current_state()
+
 
 def mouse_up(event):
     global current_mode
@@ -510,6 +571,7 @@ def mouse_up(event):
         snapped_item_angular = None
         redraw()
 
+
 def shift_mouse_down(event):
     global current_mode
     global mouse_location
@@ -519,7 +581,8 @@ def shift_mouse_down(event):
         global selected_nodes
         global current_possible_selections
 
-        current_mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
+        current_mouse_location = euclidean_coordinates.euclidean_coordinate(
+            event.x, event.y)
 
         def distance_cmp(a, b):
             if a[1] > b[1]:
@@ -532,14 +595,14 @@ def shift_mouse_down(event):
         possible_selections = []
 
         for index, item in enumerate(items):
-            distance = euclidean_coordinates.distance_between(current_mouse_location,
-                                                              item.coordinate)
+            distance = euclidean_coordinates.distance_between(
+                current_mouse_location, item.coordinate)
 
             if distance < drawer.selection_radius:
                 possible_selections.append((index, distance))
 
         possible_selections = sorted(possible_selections,
-                                     key = functools.cmp_to_key(distance_cmp))
+                                     key=functools.cmp_to_key(distance_cmp))
 
         current_possible_selections = [x[0] for x in possible_selections]
 
@@ -561,75 +624,129 @@ def shift_mouse_down(event):
 def mouse_moved(event):
     global current_mode
 
-    if current_mode == Mode.polygon:
-        global current_polygon
-        global items
+    if not current_mode == Mode.polygon:
+        return
 
-        if len(current_polygon) > 0:
-            mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
-            index_of_last_polygon_node = current_polygon[-1]
-            set_coordinate_of_item_to(index_of_last_polygon_node, mouse_location)
+    global current_polygon
+
+    if len(current_polygon) == 0:
+        return
+
+    global items
+    mouse_location = euclidean_coordinates.euclidean_coordinate(
+        event.x, event.y)
+    #  set_coordinate_of_item_to(current_polygon[-1], mouse_location)
+    set_location_of_item(mouse_location, current_polygon[-1])
+
+    status_text = "Polygon Points:\n"
+    for polygon_point in current_polygon:
+        polygon_point_item = items[polygon_point]
+        polygon_point_native = drawer.hyperbolic_coordinate_from_canvas_point(
+            polygon_point_item.coordinate)
+
+        status_text += "Point: (" + str("{:4.6f}".format(
+            polygon_point_native.r)) + ", " + str("{:4.6f}".format(
+                polygon_point_native.phi)) + ")\n"
+
+    # Display the distance between the current and the last polygon
+    # point.
+    if len(current_polygon) > 1:
+        current_item = items[current_polygon[-1]]
+        current_native = drawer.hyperbolic_coordinate_from_canvas_point(
+            current_item.coordinate)
+
+        previous_item = items[current_polygon[-2]]
+        previous_native = drawer.hyperbolic_coordinate_from_canvas_point(
+            previous_item.coordinate)
+
+        status_text += "Distance to previous: " + str("{:4.6f}".format(
+            native_coordinates.distance_between(current_native,
+                                                previous_native))) + "\n"
+
+    # Since the status label flickers when its width changes often, we
+    # artificially make it very wide by appending a long line.
+    status_text += "-----------------------------------"
+
+    set_status_label_text(status_text)
+
 
 def mouse_dragged(event):
     global current_mode
 
     if current_mode == Mode.translate:
-        mouse_location = euclidean_coordinates.euclidean_coordinate(event.x, event.y)
+        mouse_location = euclidean_coordinates.euclidean_coordinate(
+            event.x, event.y)
         translate_with_location(mouse_location)
+
+
+# Updates the location of an item. If snap is enabled, will snap to possible
+# radii or angles.
+def set_location_of_item(location, item):
+    if not is_snap_enabled:
+        set_coordinate_of_item_to(item, location)
+        return
+
+    # If snap is enabled, we now look for possible snap targets.
+    global snapped_item_radial
+    global snapped_item_angular
+    global items
+
+    # At first we assume that the dragged item doesn't snap to anything.
+    snapped_item_radial = None
+    snapped_item_angular = None
+
+    dragged_item_index = selected_nodes[-1]
+    new_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(location)
+
+    minimum_radial_distance = sys.float_info.max
+    minimum_angular_distance = sys.float_info.max
+
+    for index, item in enumerate(items):
+        # We don't snap to the vertex that is currently being dragged.
+        if index == dragged_item_index:
+            continue
+
+        other_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(
+            item.coordinate)
+
+        radial_distance = abs(other_coordinate.r - new_coordinate.r)
+        angular_distance = new_coordinate.angular_distance_to(other_coordinate)
+
+        if radial_distance < 0.5 and radial_distance < minimum_radial_distance:
+            snapped_item_radial = index
+            minimum_radial_distance = radial_distance
+        elif angular_distance < 0.15:
+            snapped_item_angular = index
+            minimum_angular_distance = angular_distance
+
+        # If we found something to snap to, we set the coordinates
+        # of the current item to the snapped ones.
+        if snapped_item_radial is not None:
+            snapped_radial_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(
+                items[snapped_item_radial].coordinate)
+            new_coordinate.r = snapped_radial_coordinate.r
+        if snapped_item_angular is not None:
+            snapped_angular_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(
+                items[snapped_item_angular].coordinate)
+            new_coordinate.phi = snapped_angular_coordinate.phi
+
+        new_euclidean_coordinate = drawer.canvas_point_from_hyperbolic_coordinate(
+            new_coordinate)
+        set_coordinate_of_item_to(dragged_item_index, new_euclidean_coordinate)
+
 
 def translate_with_location(location):
     global selected_nodes
     global is_snap_enabled
 
-    if len(selected_nodes) > 0:
+    if len(selected_nodes) == 0:
+        return
 
-        if is_snap_enabled:
-            global snapped_item_radial
-            global snapped_item_angular
-            global items
+    # Update the location of the primary selection and snap to radii and
+    # angles, if enabled.
+    set_location_of_item(location, selected_nodes[-1])
+    update_status_label()
 
-            # At first we assume that the dragged item doesn't snap to anything.
-            snapped_item_radial = None
-            snapped_item_angular = None
-
-            dragged_item_index = selected_nodes[-1]
-            new_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(location)
-
-            minimum_radial_distance = sys.float_info.max
-            minimum_angular_distance = sys.float_info.max
-
-            for index, item in enumerate(items):
-                # We don't snap to the vertex that is currently being dragged.
-                if not index == dragged_item_index:
-                    other_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(item.coordinate)
-
-                    radial_distance = abs(other_coordinate.r - new_coordinate.r)
-                    angular_distance = new_coordinate.angular_distance_to(other_coordinate)
-
-                    if radial_distance < 0.5 and radial_distance < minimum_radial_distance:
-                        snapped_item_radial = index
-                        minimum_radial_distance = radial_distance
-                    elif angular_distance < 0.15:
-                        snapped_item_angular = index
-                        minimum_angular_distance = angular_distance
-
-                # If we found something to snap to, we set the coordinates
-                # of the current item to the snapped ones.
-                if snapped_item_radial is not None:
-                    snapped_radial_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(items[snapped_item_radial].coordinate)
-                    new_coordinate.r = snapped_radial_coordinate.r
-                if snapped_item_angular is not None:
-                    snapped_angular_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(items[snapped_item_angular].coordinate)
-                    new_coordinate.phi = snapped_angular_coordinate.phi
-
-                new_euclidean_coordinate = drawer.canvas_point_from_hyperbolic_coordinate(new_coordinate)
-                set_coordinate_of_item_to(dragged_item_index, new_euclidean_coordinate)
-
-        else:
-            item_index = selected_nodes[-1]
-            set_coordinate_of_item_to(item_index, location)
-
-        update_status_label()
 
 def mouse_scrolled_with_delta(delta):
     global edges
@@ -666,27 +783,33 @@ def mouse_scrolled_with_delta(delta):
     update_status_label()
     redraw()
 
+
 def shift_mouse_scrolled_with_delta(delta):
     global edges
     global selected_nodes
 
     radius_delta = 0.1 * delta
 
-    center = euclidean_coordinates.euclidean_coordinate(canvas.winfo_width() / 2.0,
-                                                        canvas.winfo_height() / 2.0)
+    center = euclidean_coordinates.euclidean_coordinate(
+        canvas.winfo_width() / 2.0,
+        canvas.winfo_height() / 2.0)
 
     for selected_node in selected_nodes:
         item = items[selected_node]
         coordinate = item.coordinate
-        relative_coordinate = euclidean_coordinates.coordinate_relative_to_coordinate(coordinate, center)
-        native_coordinate = relative_coordinate.to_native_coordinate_with_scale(drawer.scale)
+        relative_coordinate = euclidean_coordinates.coordinate_relative_to_coordinate(
+            coordinate, center)
+        native_coordinate = relative_coordinate.to_native_coordinate_with_scale(
+            drawer.scale)
         new_radius = native_coordinate.r + radius_delta
         if new_radius < 0.0:
             new_radius = 0.0
         native_coordinate.r = new_radius
 
-        relative_modified_point = native_coordinate.to_euclidean_coordinate_with_scale(drawer.scale)
-        modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, relative_modified_point)
+        relative_modified_point = native_coordinate.to_euclidean_coordinate_with_scale(
+            drawer.scale)
+        modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(
+            center, relative_modified_point)
         item.coordinate = modified_point
 
         # If the item is a circle, its circle points need to move now.
@@ -704,51 +827,57 @@ def shift_mouse_scrolled_with_delta(delta):
     update_status_label()
     redraw()
 
+
 def mouse_scrolled(event):
     mouse_scrolled_with_delta(event.delta)
+
 
 def mouse_scroll_up(event):
     mouse_scrolled_with_delta(1)
 
+
 def mouse_scroll_down(event):
     mouse_scrolled_with_delta(-1)
+
 
 def shift_mouse_scrolled(event):
     shift_mouse_scrolled_with_delta(event.delta)
 
+
 def shift_mouse_scroll_up(event):
     shift_mouse_scrolled_with_delta(1)
+
 
 def shift_mouse_scroll_down(event):
     shift_mouse_scrolled_with_delta(-1)
 
-# Keyboard Interaction
-def delete_pressed(event):
+
+# Deletes the selected items and possible edges between them.
+def delete_items(items_to_delete):
     global items
     global edges
-    global selected_nodes
 
-    sorted_selection_indices = sorted(selected_nodes)
+    sorted_indices = sorted(items_to_delete)
 
     # Vertices will be deleted so the indices of the other vertices change.
     # Here we determine the map from the old indices to the new ones
     index_map = dict()
     current_new_index = 0
     for index in range(len(items)):
-        if not index in sorted_selection_indices:
+        if not index in sorted_indices:
             index_map[index] = current_new_index
             current_new_index += 1
 
-    for selected_node in reversed(sorted_selection_indices):
+    for node_to_remove in reversed(sorted_indices):
         edges_to_remove = []
         for index, edge in enumerate(edges):
-            if edge.index1 == selected_node or edge.index2 == selected_node:
+            if edge.index1 == node_to_remove or edge.index2 == node_to_remove:
                 edges_to_remove.append(index)
 
         for edge_index in reversed(sorted(edges_to_remove)):
             del edges[edge_index]
 
-        del items[selected_node]
+        del items[node_to_remove]
 
     for index, edge in enumerate(edges):
         for old_index, new_index in index_map.items():
@@ -758,10 +887,19 @@ def delete_pressed(event):
                 edge.index2 = new_index
             edges[index] = edge
 
+
+# Keyboard Interaction
+def delete_pressed(event):
+    global items
+    global edges
+    global selected_nodes
+
+    delete_items(selected_nodes)
     del selected_nodes[:]
 
     update_status_label()
     redraw()
+
 
 def space_pressed(event):
     global current_mode
@@ -782,6 +920,7 @@ def space_pressed(event):
                 update_status_label()
                 redraw()
 
+
 def escape_pressed(event):
     global selected_nodes
     global current_possible_selections
@@ -789,8 +928,15 @@ def escape_pressed(event):
 
     selected_nodes = []
     current_possible_selection = []
+
+    # If escape is pressed, an we're in the middle of creating a polygon, we
+    # consider this process to be canceled and delete the new polygon nodes.
+    delete_items(current_polygon)
     current_polygon = []
+
+    update_status_label()
     redraw()
+
 
 def c_pressed(event):
     global selected_nodes
@@ -806,6 +952,7 @@ def c_pressed(event):
     save_current_state()
     redraw()
 
+
 def o_pressed(event):
     global current_circle_size
     global current_mode
@@ -815,12 +962,15 @@ def o_pressed(event):
         update_mode_indicator()
         update_help_label()
     else:
-        center = euclidean_coordinates.euclidean_coordinate(canvas.winfo_width() / 2.0,
-                                                            canvas.winfo_height() / 2.0)
+        center = euclidean_coordinates.euclidean_coordinate(
+            canvas.winfo_width() / 2.0,
+            canvas.winfo_height() / 2.0)
         add_circle_at(center)
+
 
 def p_pressed(event):
     set_mode_polygon()
+
 
 def d_pressed(event):
     global items
@@ -849,6 +999,7 @@ def e_pressed(event):
                 add_edge_between(selected_node1, selected_node2)
         redraw()
 
+
 def g_pressed(event):
     global current_circle_size
 
@@ -858,6 +1009,7 @@ def g_pressed(event):
         drawer.grid_radius = current_circle_size
 
     redraw()
+
 
 def capital_g_pressed(event):
     if len(sys.argv) > 2:
@@ -877,8 +1029,9 @@ def capital_g_pressed(event):
         with open(embedding_file_name, "rb") as embedding_file:
             lines = embedding_file.readlines()
 
-            center = euclidean_coordinates.euclidean_coordinate(canvas.winfo_width() / 2.0,
-                                                                canvas.winfo_height() / 2.0)
+            center = euclidean_coordinates.euclidean_coordinate(
+                canvas.winfo_width() / 2.0,
+                canvas.winfo_height() / 2.0)
 
             for line in lines:
                 line = line.strip()
@@ -888,10 +1041,11 @@ def capital_g_pressed(event):
                     x = float(line_components[1]) * drawer.scale
                     y = float(line_components[2]) * drawer.scale
 
-                    coordinate = euclidean_coordinates.euclidean_coordinate(center.x + x, center.y + y)
+                    coordinate = euclidean_coordinates.euclidean_coordinate(
+                        center.x + x, center.y + y)
                     # relative_coordinate = euclidean_coordinates.coordinate_relative_to_coordinate(coordinate, center)
 
-                    point = drawing.point(coordinate = coordinate, color = 0)
+                    point = drawing.point(coordinate=coordinate, color=0)
                     items.append(point)
 
         with open(graph_file_name, "rb") as graph_file:
@@ -909,7 +1063,10 @@ def capital_g_pressed(event):
 
         redraw()
     else:
-        set_status_label_text("No graph files provided. Launch Hipe with: python3 Hipe.py path/to/edgelist.txt path/to/embedding.txt")
+        set_status_label_text(
+            "No graph files provided. Launch Hipe with: python3 Hipe.py path/to/edgelist.txt path/to/embedding.txt"
+        )
+
 
 def h_pressed(event):
     global current_mode
@@ -924,7 +1081,10 @@ def h_pressed(event):
 
             edge_index = -1
             for index, edge in enumerate(edges):
-                if (edge.index1 == selected_node1 and edge.index2 == selected_node2) or (edge.index2 == selected_node1 and edge.index1 == selected_node2):
+                if (edge.index1 == selected_node1
+                        and edge.index2 == selected_node2) or (
+                            edge.index2 == selected_node1
+                            and edge.index1 == selected_node2):
                     edge_index = index
                     break
 
@@ -944,10 +1104,13 @@ def h_pressed(event):
             redraw()
 
         else:
-            set_status_label_text("Select exactly 2 nodes to add a hypercycle!")
+            set_status_label_text(
+                "Select exactly 2 nodes to add a hypercycle!")
+
 
 def m_pressed(event):
     set_mode_mark()
+
 
 def r_pressed(event):
     global current_mode
@@ -958,20 +1121,27 @@ def r_pressed(event):
         global edges
 
         if len(selected_nodes) > 1:
-            center = euclidean_coordinates.euclidean_coordinate(canvas.winfo_width() / 2.0,
-                                                                canvas.winfo_height() / 2.0)
+            center = euclidean_coordinates.euclidean_coordinate(
+                canvas.winfo_width() / 2.0,
+                canvas.winfo_height() / 2.0)
             reference_point = items[selected_nodes[-1]].coordinate
-            relative_reference_point = euclidean_coordinates.coordinate_relative_to_coordinate(reference_point, center)
-            native_reference_point = relative_reference_point.to_native_coordinate_with_scale(1.0)
+            relative_reference_point = euclidean_coordinates.coordinate_relative_to_coordinate(
+                reference_point, center)
+            native_reference_point = relative_reference_point.to_native_coordinate_with_scale(
+                1.0)
             reference_radius = native_reference_point.r
             for i in range(0, len(selected_nodes)):
                 item = items[selected_nodes[i]]
                 original_point = item.coordinate
-                relative_original_point = euclidean_coordinates.coordinate_relative_to_coordinate(original_point, center)
-                native_original_point = relative_original_point.to_native_coordinate_with_scale(1.0)
+                relative_original_point = euclidean_coordinates.coordinate_relative_to_coordinate(
+                    original_point, center)
+                native_original_point = relative_original_point.to_native_coordinate_with_scale(
+                    1.0)
                 native_original_point.r = reference_radius
-                relative_modified_point = native_original_point.to_euclidean_coordinate_with_scale(1.0)
-                modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(center, relative_modified_point)
+                relative_modified_point = native_original_point.to_euclidean_coordinate_with_scale(
+                    1.0)
+                modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(
+                    center, relative_modified_point)
                 item.coordinate = modified_point
 
                 # If the item is a circle, its circle points need to move now.
@@ -982,7 +1152,8 @@ def r_pressed(event):
 
                 # If the item is part of an edge, the edge needs to be updated.
                 for edge in edges:
-                    if edge.index1 == selected_nodes[i] or edge.index2 == selected_nodes[i]:
+                    if edge.index1 == selected_nodes[
+                            i] or edge.index2 == selected_nodes[i]:
                         edge.edge_points = []
                         edge.hypercycle_points = None
 
@@ -992,11 +1163,14 @@ def r_pressed(event):
             update_status_label()
             redraw()
 
+
 def s_pressed(event):
     set_mode_select()
 
+
 def t_pressed(event):
     set_mode_translate()
+
 
 # Creating the GUI
 root = Tk()
@@ -1005,16 +1179,16 @@ gui = gui.gui(root)
 help_label = gui.help_label
 status_label = gui.status_label
 
-gui.select_button.configure(command = set_mode_select)
-gui.translate_button.configure(command = set_mode_translate)
-gui.mark_button.configure(command = set_mode_mark)
-gui.circle_button.configure(command = set_mode_circle)
-gui.polygon_button.configure(command = set_mode_polygon)
+gui.select_button.configure(command=set_mode_select)
+gui.translate_button.configure(command=set_mode_translate)
+gui.mark_button.configure(command=set_mode_mark)
+gui.circle_button.configure(command=set_mode_circle)
+gui.polygon_button.configure(command=set_mode_polygon)
 
-gui.snap_button.configure(command = toggle_snap)
+gui.snap_button.configure(command=toggle_snap)
 
-gui.ipe_save_button.configure(command = save_as_ipe)
-gui.svg_save_button.configure(command = save_as_svg)
+gui.ipe_save_button.configure(command=save_as_ipe)
+gui.svg_save_button.configure(command=save_as_svg)
 
 # So we see the initial circle size
 update_mode_indicator()
@@ -1070,7 +1244,6 @@ scale = 35.0
 drawer = drawing.drawer(canvas, scale)
 
 # Graph Input:
-
 
 while True:
     try:

@@ -72,11 +72,10 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
         original_point.phi = coordinate.phi
 
         reference_point = polar_coordinate(0.0, 0.0)
+        reference_point.r = math.fabs(distance)
         if distance > 0.0:
-            reference_point.r = math.fabs(distance)
             reference_point.phi = math.pi
         elif distance < 0.0:
-            reference_point.r = math.fabs(distance)
             reference_point.phi = 0.0
         else:
             return coordinate
@@ -106,11 +105,14 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
 
     else:
         newAngle = 0.0;
-        newRadius = 0.0;
+        newRadius = fabs(coordinate.r + distance)
 
         if distance < 0.0:
-            newAngle = math.pi
-            newRadius = coordinate.r - distance
+            if fabs(distance) > coordinate.r:
+                newAngle = math.pi
+                newRadius = coordinate.r - distance
+            else:
+                newAngle = 0.0
         else:
             if distance > coordinate.r:
                 newAngle = 0.0;
@@ -187,7 +189,6 @@ def render_points_for_circle_with_center_and_radius(center, radius):
     r_min = max((radius - center.r), (center.r - radius))
     r_max = center.r + radius
 
-    # Compute the render points that we can be sure of.
     step_size = (r_max - r_min) / render_detail
 
     circle_points = []
@@ -198,7 +199,7 @@ def render_points_for_circle_with_center_and_radius(center, radius):
     theta = 0
 
     additional_render_detail_threshold = 5.0 * step_size
-    additional_render_detail = 20
+    additional_render_detail = render_detail / 5;
 
     while r >= r_min:
         try:
@@ -232,7 +233,8 @@ def render_points_for_circle_with_center_and_radius(center, radius):
         r = r - step_size
 
     # Add the point on the ray through the origin and center. Depending on
-    # whether the origin is contained in the circle or not.
+    # whether the origin is contained in the circle the angle of this points is
+    # either pi or 0.
     inner_point_angle = math.pi
     if center.r > radius:
         inner_point_angle = 0.0
@@ -250,9 +252,6 @@ def render_points_for_circle_with_center_and_radius(center, radius):
         mirrored_point = polar_coordinate(native_circle_point.r, (2.0 * math.pi) - native_circle_point.phi)
         circle_points.append(mirrored_point)
         i = i - 1
-
-    # If r_min is smaller than r, then we need to draw part of the circle as an
-    # actual Euclidean circle.
 
     # Finally we rotate all points around the origin to match the angular
     # coordinate of the circle center.
@@ -272,7 +271,7 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
     rotation_angle1 = -point1.phi
     rotated_point2 = coordinate_rotated_around_origin_by_angle(point2, rotation_angle1)
 
-    # Rotate the points such that the first lies on the origin
+    # Translate the points such that the first lies on the origin
     translation_distance = -point1.r
     translated_point2 = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_point2, translation_distance)
 
