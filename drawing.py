@@ -21,7 +21,6 @@ import euclidean_coordinates
 import embedded_graph
 import native_coordinates
 import math
-import collections
 
 
 class point:
@@ -74,8 +73,17 @@ class drawer:
     def __init__(self, canvas, scale):
         self.canvas = canvas
         self.scale = scale
+
+        # The embedded graph
+        self.embedded_graph = None
+
+        # The drawn items associated with the embedded graph.
+        self.embedded_graph_items = None
+
+        # The grid
         self.grid_radius = 0
 
+        # The regular grid
         self.regular_grid = None
         self.regular_grid_depth = 0
 
@@ -194,6 +202,33 @@ class drawer:
                     self.secondary_selection_color, 1.0)
                 self.snap_items.append(angular_snap_items)
 
+    def draw_embedded_graph(self, center, path_func, circle_func):
+        if not self.embedded_graph:
+            return
+
+        if self.embedded_graph_items:
+            return
+
+        self.embedded_graph_items = []
+
+        items = []
+        for node in self.embedded_graph.embedding:
+            coordinate = self.embedded_graph.embedding[node]
+            canvas_coordinate = self.canvas_point_from_hyperbolic_coordinate(
+                coordinate)
+            items.append(point(canvas_coordinate, 0))
+
+        self.embedded_graph_items += self.draw_points(items, [], center,
+                                                      circle_func)
+
+        # Create the edges.
+        edges = []
+        for u, v in self.embedded_graph.graph.edges:
+            edges.append(edge(u, v))
+
+        self.embedded_graph_items += self.draw_edges(edges, items, center,
+                                                     path_func)
+
     def draw_regular_grid(self, center, path_func, circle_func):
         if self.regular_grid_depth <= 0:
             return
@@ -207,12 +242,10 @@ class drawer:
             self.regular_grid = embedded_graph.embedded_graph.create_grid(
                 self.regular_grid_depth)
 
-        grid_color = "gray"
-        alpha = 0.75
-
         # Create the points describing the coordinates.
         items = []
-        for coordinate in self.regular_grid.embedding:
+        for node in self.regular_grid.embedding:
+            coordinate = self.regular_grid.embedding[node]
             canvas_coordinate = self.canvas_point_from_hyperbolic_coordinate(
                 coordinate)
             items.append(point(canvas_coordinate, 0))
@@ -482,6 +515,9 @@ class drawer:
 
         # Draw the regular grid
         self.draw_regular_grid(center, path_func, circle_func)
+
+        # Draw the embedded graph
+        self.draw_embedded_graph(center, path_func, circle_func)
 
         # Draw the grid
         self.draw_grid(center, path_func, circle_func)

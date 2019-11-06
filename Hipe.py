@@ -16,20 +16,22 @@
 #
 # You can contact the author via email: max.katzmann@gmail.com
 
-from tkinter import *
 # Reference: https://info host.nmt.edu/tcc/help/pubs/tkinter/web/index.html
 import copy
 import datetime
+import functools
 import math
 import sys
-import functools
-import drawing
-import native_coordinates
-import euclidean_coordinates
-import printing
-import gui
-from subprocess import call
 from enum import Enum
+from subprocess import call
+from tkinter import *
+
+import drawing
+import embedded_graph
+import euclidean_coordinates
+import gui
+import native_coordinates
+import printing
 
 # Modes
 Mode = Enum("Mode", "select translate mark circle polygon")
@@ -380,6 +382,7 @@ def mark_all_items_for_redraw():
         mark_edge_for_redraw(edge)
 
     mark_regular_grid_for_redraw()
+    mark_embedded_graph_for_redraw()
 
 
 def mark_regular_grid_for_redraw():
@@ -390,6 +393,16 @@ def mark_regular_grid_for_redraw():
         drawer.canvas.delete(drawn_item)
 
     drawer.regular_grid_items = None
+
+
+def mark_embedded_graph_for_redraw():
+    if not drawer.embedded_graph_items:
+        return
+
+    for drawn_item in drawer.embedded_graph_items:
+        drawer.canvas.delete(drawn_item)
+
+    drawer.embedded_graph_items = None
 
 
 def remove_current_polygon():
@@ -1136,7 +1149,7 @@ def d_pressed(event):
 def e_pressed(event):
     global current_mode
 
-    if not current_mode == Mode.select:
+    if not current_mode == Mode.select or current_mode == Mode.polygon:
         return
 
     global selected_nodes
@@ -1161,6 +1174,13 @@ def g_pressed(event):
 
 
 def capital_g_pressed(event):
+    # If we already drew the graph, we remove the drawing now.
+    if drawer.embedded_graph:
+        mark_embedded_graph_for_redraw()
+        drawer.embedded_graph = None
+        redraw()
+        return
+
     if len(sys.argv) <= 2:
         set_status_label_text(
             "No graph files provided. Launch Hipe with: python3 Hipe.py path/to/edgelist.txt path/to/embedding.txt"
@@ -1179,7 +1199,8 @@ def capital_g_pressed(event):
     # indices.
     index_offset = len(items)
 
-    embedding = dict()
+    graph = embedded_graph.embedded_graph()
+
     with open(embedding_file_name, "rb") as embedding_file:
         lines = embedding_file.readlines()
 
@@ -1192,14 +1213,11 @@ def capital_g_pressed(event):
             line_components = line.split()
             if len(line_components) > 0:
                 vertex = int(line_components[0])
-                x = float(line_components[1]) * drawer.scale
-                y = float(line_components[2]) * drawer.scale
+                radius = float(line_components[1])
+                angle = float(line_components[2])
 
-                coordinate = euclidean_coordinates.euclidean_coordinate(
-                    center.x + x, center.y + y)
-
-                point = drawing.point(coordinate=coordinate, color=0)
-                items.append(point)
+                coordinate = native_coordinates.polar_coordinate(radius, angle)
+                graph.embedding[vertex] = coordinate
 
     with open(graph_file_name, "rb") as graph_file:
         lines = graph_file.readlines()
@@ -1211,52 +1229,52 @@ def capital_g_pressed(event):
             node1 = int(line_components[0]) + index_offset
             node2 = int(line_components[1]) + index_offset
 
-            new_edge = drawing.edge(node1, node2)
-            edges.append(new_edge)
+            graph.graph.add_edge(node1, node2)
 
+    drawer.embedded_graph = graph
     redraw()
 
 
 def h_pressed(event):
     global current_mode
 
-    if not current_mode == Mode.select:
+    if not current_mode == Mode.select or current_mode == Mode.polygon:
         return
 
     global selected_nodes
     global edges
 
-    if len(selected_nodes) == 2:
-        selected_node1 = selected_nodes[0]
-        selected_node2 = selected_nodes[1]
-
-        edge_index = -1
-        for index, edge in enumerate(edges):
-            if (edge.index1 == selected_node1 and edge.index2 == selected_node2
-                ) or (edge.index2 == selected_node1
-                      and edge.index1 == selected_node2):
-                edge_index = index
-                break
-
-        if edge_index >= 0:
-            # If the edge already had a hypercycle, we now remove it
-            if edge.hypercycle_radius > 0:
-                edge.hypercycle_radius = 0
-                edge.hypercycle_points = None
-            else:
-                edges[edge_index].hypercycle_radius = current_circle_size
-        else:
-            edge = drawing.edge(selected_node1, selected_node2)
-            edge.hypercycle_radius = current_circle_size
-            edges.append(edge)
-
-        # We have just changed the status of this edge. It needs to be marked
-        # for redrawing.
-        mark_edge_for_redraw(edge)
-        redraw()
-
-    else:
+    if len(selected_nodes) != 2:
         set_status_label_text("Select exactly 2 nodes to add a hypercycle!")
+        return
+
+    selected_node1 = selected_nodes[0]
+    selected_node2 = selected_nodes[1]
+
+    edge_index = -1
+    for index, edge in enumerate(edges):
+        if (edge.index1 == selected_node1 and edge.index2 == selected_node2
+            ) or (edge.index2 == selected_node1
+                  and edge.index1 == selected_node2):
+            edge_index = index
+            break
+
+    if edge_index >= 0:
+        # If the edge already had a hypercycle, we now remove it
+        if edge.hypercycle_radius > 0:
+            edge.hypercycle_radius = 0
+            edge.hypercycle_points = None
+        else:
+            edges[edge_index].hypercycle_radius = current_circle_size
+    else:
+        edge = drawing.edge(selected_node1, selected_node2)
+        edge.hypercycle_radius = current_circle_size
+        edges.append(edge)
+
+    # We have just changed the status of this edge. It needs to be marked
+    # for redrawing.
+    mark_edge_for_redraw(edge)
+    redraw()
 
 
 def m_pressed(event):

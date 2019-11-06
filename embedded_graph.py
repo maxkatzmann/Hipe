@@ -7,7 +7,7 @@ import math
 class embedded_graph:
     def __init__(self):
         self.graph = nx.Graph()
-        self.embedding = []
+        self.embedding = {}
 
     @staticmethod
     def add_grid_root_with_neighbors(grid, p, q, layers):
@@ -175,7 +175,7 @@ class embedded_graph:
 
         # Initialize the embedding by setting all coordinates to be the origin.
         for v in grid.graph.nodes:
-            grid.embedding.append(native_coordinates.polar_coordinate(0, 0))
+            grid.embedding[v] = native_coordinates.polar_coordinate(0, 0)
 
         # We start by embedding the root of the grid.
         embedded_graph.embed_grid_root(grid, p, q, angle, edge_length)
