@@ -19,6 +19,7 @@
 import math
 import native_coordinates
 
+
 class euclidean_coordinate(object):
     def __init__(self, x, y):
         self.x = x
@@ -28,16 +29,19 @@ class euclidean_coordinate(object):
         return "(x = " + str(self.x) + ", y = " + str(self.y) + ")"
 
     def to_native_coordinate_with_scale(self, scale):
-        return native_coordinates.polar_coordinate(\
-                                                  math.sqrt(self.x / scale * self.x / scale + self.y / scale * self.y / scale), \
-                                                  math.atan2(self.y / scale, self.x / scale) + math.pi)
+        return native_coordinates.polar_coordinate(
+            math.sqrt(self.x / scale * self.x / scale +
+                      self.y / scale * self.y / scale),
+            math.atan2(self.y / scale, self.x / scale) + math.pi)
 
     def to_native_coordinate(self):
         return self.to_native_coordinate_with_scale(1.0)
 
+
 def coordinate_relative_to_coordinate(coord1, coord2):
     result = euclidean_coordinate(coord1.x - coord2.x, coord1.y - coord2.y)
     return result
+
 
 def distance_between(coord1, coord2):
     difference = coordinate_relative_to_coordinate(coord1, coord2)

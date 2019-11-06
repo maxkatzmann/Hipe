@@ -20,9 +20,12 @@ import math
 import euclidean_coordinates
 import collections
 
-hypercycle_points = collections.namedtuple("hypercycle_points", ["upper_samples", "lower_samples"])
+hypercycle_points = collections.namedtuple("hypercycle_points",
+                                           ["upper_samples", "lower_samples"])
 
 # Polar Coordinates
+
+
 class polar_coordinate:
     def __init__(self, r, phi):
         self.r = r
@@ -32,14 +35,16 @@ class polar_coordinate:
         return "(r = " + str(self.r) + ", phi = " + str(self.phi) + ")"
 
     def to_euclidean_coordinate_with_scale(self, scale):
-        return euclidean_coordinates.euclidean_coordinate(self.r * math.cos(self.phi) * scale,
-                                                          self.r * math.sin(self.phi) * scale)
+        return euclidean_coordinates.euclidean_coordinate(
+            self.r * math.cos(self.phi) * scale,
+            self.r * math.sin(self.phi) * scale)
 
     def to_euclidean_coordinate(self):
         return to_euclidean_coordinate_with_scale(1.0)
 
     def angular_distance_to(self, other):
         return math.pi - abs(math.pi - abs(self.phi - other.phi))
+
 
 def coordinate_rotated_around_origin_by_angle(coordinate, angle):
     if coordinate.r == 0:
@@ -53,19 +58,24 @@ def coordinate_rotated_around_origin_by_angle(coordinate, angle):
 
     return result
 
+
 def distance_between(coord1, coord2):
-    delta_phi = math.pi - math.fabs(math.pi - math.fabs(coord1.phi - coord2.phi))
+    delta_phi = math.pi - \
+        math.fabs(math.pi - math.fabs(coord1.phi - coord2.phi))
     try:
-        return math.acosh(\
-                          math.cosh(coord1.r) * math.cosh(coord2.r) \
-                          - math.sinh(coord1.r) * math.sinh(coord2.r) * math.cos(delta_phi));
+        return math.acosh(
+            math.cosh(coord1.r) * math.cosh(coord2.r) -
+            math.sinh(coord1.r) * math.sinh(coord2.r) * math.cos(delta_phi))
     except ValueError:
         return 0
+
 
 def coordinate_mirrored_on_x_axis(coordinate):
     return polar_coordinate(coordinate.r, -(coordinate.phi - (2.0 * math.pi)))
 
-def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distance):
+
+def coordinate_translated_along_x_axis_by_hyperbolic_distance(
+        coordinate, distance):
     if coordinate.phi != math.pi:
         original_point = polar_coordinate(0.0, 0.0)
         original_point.r = coordinate.r
@@ -85,9 +95,14 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
 
         radial_coordinate = distance_between(coordinate, reference_point)
 
-        enumerator = (math.cosh(math.fabs(distance)) * math.cosh(radial_coordinate) \
-                - math.cosh(coordinate.r))
-        denominator = (math.sinh(math.fabs(distance)) * math.sinh(radial_coordinate))
+        if radial_coordinate == 0.0:
+            return polar_coordinate(0.0, 0.0)
+
+        enumerator = (
+            math.cosh(math.fabs(distance)) * math.cosh(radial_coordinate) -
+            math.cosh(coordinate.r))
+        denominator = (math.sinh(math.fabs(distance)) *
+                       math.sinh(radial_coordinate))
 
         try:
             angular_coordinate = math.acos(enumerator / denominator)
@@ -95,16 +110,18 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
                 angular_coordinate = math.pi - angular_coordinate
 
         except ValueError:
-                angular_coordinate = 0.0
+            angular_coordinate = 0.0
 
-        translated_coordinate = polar_coordinate(radial_coordinate, angular_coordinate);
+        translated_coordinate = polar_coordinate(radial_coordinate,
+                                                 angular_coordinate)
         if original_point.phi > math.pi:
-            translated_coordinate = coordinate_mirrored_on_x_axis(translated_coordinate)
+            translated_coordinate = coordinate_mirrored_on_x_axis(
+                translated_coordinate)
 
         return translated_coordinate
 
     else:
-        newAngle = 0.0;
+        newAngle = 0.0
         newRadius = fabs(coordinate.r + distance)
 
         if distance < 0.0:
@@ -115,53 +132,64 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(coordinate, distan
                 newAngle = 0.0
         else:
             if distance > coordinate.r:
-                newAngle = 0.0;
+                newAngle = 0.0
                 newRadius = distance - coordinate.r
             else:
                 newAngle = math.pi
                 newRadius = coordinate.r - distance
 
-        return polar_coordinate(newRadius, newAngle);
+        return polar_coordinate(newRadius, newAngle)
+
 
 def render_points_for_line_from_to(point1, point2):
 
     render_detail = 100
     if point1.r == 0 or point2.r == 0 or point1.phi == point2.phi:
         return [point1, point2]
-    else:
-        angular_distance = point2.phi - point1.phi
-        if (angular_distance > 0.0 and angular_distance < math.pi) or angular_distance < -math.pi:
-            temp = point1
-            point1 = point2
-            point2 = temp
 
-        distance = distance_between(point1, point2)
+    angular_distance = point2.phi - point1.phi
+    if (angular_distance > 0.0
+            and angular_distance < math.pi) or angular_distance < -math.pi:
+        temp = point1
+        point1 = point2
+        point2 = temp
 
-        cos_gamma_2 = 0.0
+    distance = distance_between(point1, point2)
+
+    cos_gamma_2 = 0.0
+    try:
+        cos_gamma_2 = (((math.cosh(point2.r) * math.cosh(distance)) -
+                        math.cosh(point1.r)) /
+                       (math.sinh(point2.r) * math.sinh(distance)))
+    except (ZeroDivisionError, ValueError):
+        pass
+
+    line_points = []
+    for i in range(0, render_detail):
+        partial_distance = distance * (i / float(render_detail))
+        r = 0.0
         try:
-            cos_gamma_2 = (((math.cosh(point2.r) * math.cosh(distance)) - math.cosh(point1.r)) / (math.sinh(point2.r) * math.sinh(distance)))
+            r = math.acosh((math.cosh(point2.r) * math.cosh(partial_distance) -
+                            (math.sinh(point2.r) *
+                             math.sinh(partial_distance) * cos_gamma_2)))
+        except (ZeroDivisionError, ValueError):
+            pass
+        gamma_prime = 0.0
+        try:
+            gamma_prime = math.acos(((math.cosh(r) * math.cosh(point2.r)) -
+                                     math.cosh(partial_distance)) /
+                                    (math.sinh(r) * math.sinh(point2.r)))
         except (ZeroDivisionError, ValueError):
             pass
 
-        line_points = []
-        for i in range(0, render_detail):
-            partial_distance = distance * (i / float(render_detail))
-            r = 0.0
-            try:
-                r = math.acosh((math.cosh(point2.r) * math.cosh(partial_distance) - (math.sinh(point2.r) * math.sinh(partial_distance) * cos_gamma_2)))
-            except (ZeroDivisionError, ValueError):
-                pass
-            gamma_prime = 0.0
-            try:
-                gamma_prime = math.acos(((math.cosh(r) * math.cosh(point2.r)) - math.cosh(partial_distance)) / (math.sinh(r) * math.sinh(point2.r)))
-            except (ZeroDivisionError, ValueError):
-                pass
+        phi = point2.phi + gamma_prime
+        native_line_point = polar_coordinate(r, phi)
 
-            phi = point2.phi + gamma_prime
-            native_line_point = polar_coordinate(r, phi)
+        line_points.append(native_line_point)
 
-            line_points.append(native_line_point)
-        return line_points
+    line_points.append(point1)
+    return line_points
+
 
 def render_points_for_circle_with_center_and_radius(center, radius):
     render_detail = 200
@@ -182,7 +210,6 @@ def render_points_for_circle_with_center_and_radius(center, radius):
 
         return circle_points
 
-
     # We first determine the points by pretending the node itself had angular
     # coordinate 0.
 
@@ -199,11 +226,13 @@ def render_points_for_circle_with_center_and_radius(center, radius):
     theta = 0
 
     additional_render_detail_threshold = 5.0 * step_size
-    additional_render_detail = render_detail / 5;
+    additional_render_detail = render_detail / 5
 
     while r >= r_min:
         try:
-            theta = math.acos((math.cosh(center.r) * math.cosh(r) - math.cosh(radius)) / (math.sinh(center.r) * math.sinh(r)))
+            theta = math.acos(
+                (math.cosh(center.r) * math.cosh(r) - math.cosh(radius)) /
+                (math.sinh(center.r) * math.sinh(r)))
         except ValueError:
             pass
 
@@ -219,7 +248,10 @@ def render_points_for_circle_with_center_and_radius(center, radius):
             while additional_r > r - step_size:
 
                 try:
-                    theta = math.acos((math.cosh(center.r) * math.cosh(additional_r) - math.cosh(radius)) / (math.sinh(center.r) * math.sinh(additional_r)))
+                    theta = math.acos(
+                        (math.cosh(center.r) * math.cosh(additional_r) -
+                         math.cosh(radius)) /
+                        (math.sinh(center.r) * math.sinh(additional_r)))
                 except ValueError:
                     pass
 
@@ -228,7 +260,6 @@ def render_points_for_circle_with_center_and_radius(center, radius):
                     circle_points.append(additional_point)
 
                 additional_r = additional_r - additional_step_size
-
 
         r = r - step_size
 
@@ -245,11 +276,12 @@ def render_points_for_circle_with_center_and_radius(center, radius):
     # Now we copy all points by mirroring them on the x-axis. We exclude the
     # first and the last point, as they are lying on the x-axis. To obtain a
     # valid path we need walk from the end of the vector to the start.
-    i = len(circle_points) - 2 # We don't need to add the inner point twice.
+    i = len(circle_points) - 2  # We don't need to add the inner point twice.
     while i > 0:
 
         native_circle_point = circle_points[i]
-        mirrored_point = polar_coordinate(native_circle_point.r, (2.0 * math.pi) - native_circle_point.phi)
+        mirrored_point = polar_coordinate(
+            native_circle_point.r, (2.0 * math.pi) - native_circle_point.phi)
         circle_points.append(mirrored_point)
         i = i - 1
 
@@ -257,7 +289,8 @@ def render_points_for_circle_with_center_and_radius(center, radius):
     # coordinate of the circle center.
     for i in range(len(circle_points)):
         native_circle_point = circle_points[i]
-        rotated_point = coordinate_rotated_around_origin_by_angle(native_circle_point, center.phi)
+        rotated_point = coordinate_rotated_around_origin_by_angle(
+            native_circle_point, center.phi)
         circle_points[i] = rotated_point
 
     return circle_points
@@ -269,11 +302,13 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
     # actually move the first point, as we can infer everything we know from
     # its current position.
     rotation_angle1 = -point1.phi
-    rotated_point2 = coordinate_rotated_around_origin_by_angle(point2, rotation_angle1)
+    rotated_point2 = coordinate_rotated_around_origin_by_angle(
+        point2, rotation_angle1)
 
     # Translate the points such that the first lies on the origin
     translation_distance = -point1.r
-    translated_point2 = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_point2, translation_distance)
+    translated_point2 = coordinate_translated_along_x_axis_by_hyperbolic_distance(
+        rotated_point2, translation_distance)
 
     # Rotate everything such that the second points is on the x-axis.
     # We don't actually perform the rotation (as it is not necessary).
@@ -292,10 +327,11 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
 
     for i in range(render_detail):
         current_x = i * (translated_point2.r / render_detail)
-        upper_sample_point = coordinate_translated_along_x_axis_by_hyperbolic_distance(reference_point, current_x)
+        upper_sample_point = coordinate_translated_along_x_axis_by_hyperbolic_distance(
+            reference_point, current_x)
         upper_sample_points.append(upper_sample_point)
-        lower_sample_point = polar_coordinate(upper_sample_point.r,
-                                              2.0 * math.pi - upper_sample_point.phi)
+        lower_sample_point = polar_coordinate(
+            upper_sample_point.r, 2.0 * math.pi - upper_sample_point.phi)
         lower_sample_points.append(lower_sample_point)
 
     # Now we need to reverse the translations made earlier.
@@ -303,17 +339,23 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
         upper_sample_point = upper_sample_points[index]
         lower_sample_point = lower_sample_points[index]
 
-        rotated_upper = coordinate_rotated_around_origin_by_angle(upper_sample_point, -rotation_angle2)
-        rotated_lower = coordinate_rotated_around_origin_by_angle(lower_sample_point, -rotation_angle2)
+        rotated_upper = coordinate_rotated_around_origin_by_angle(
+            upper_sample_point, -rotation_angle2)
+        rotated_lower = coordinate_rotated_around_origin_by_angle(
+            lower_sample_point, -rotation_angle2)
 
-        translated_upper = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_upper, -translation_distance)
-        translated_lower = coordinate_translated_along_x_axis_by_hyperbolic_distance(rotated_lower, -translation_distance)
+        translated_upper = coordinate_translated_along_x_axis_by_hyperbolic_distance(
+            rotated_upper, -translation_distance)
+        translated_lower = coordinate_translated_along_x_axis_by_hyperbolic_distance(
+            rotated_lower, -translation_distance)
 
-        final_upper = coordinate_rotated_around_origin_by_angle(translated_upper, -rotation_angle1)
-        final_lower = coordinate_rotated_around_origin_by_angle(translated_lower, -rotation_angle1)
+        final_upper = coordinate_rotated_around_origin_by_angle(
+            translated_upper, -rotation_angle1)
+        final_lower = coordinate_rotated_around_origin_by_angle(
+            translated_lower, -rotation_angle1)
 
         upper_sample_points[index] = final_upper
         lower_sample_points[index] = final_lower
 
-    return hypercycle_points(upper_samples = upper_sample_points,
-                             lower_samples = lower_sample_points)
+    return hypercycle_points(upper_samples=upper_sample_points,
+                             lower_samples=lower_sample_points)

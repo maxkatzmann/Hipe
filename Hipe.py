@@ -168,6 +168,9 @@ def undo(event):
         drawing_history.pop()
         (old_items, old_edges) = drawing_history[-1]
 
+        # Mark current items for "redraw" (will be removed).
+        mark_all_items_for_redraw()
+
         items = old_items
         edges = old_edges
         selected_nodes = []
@@ -175,9 +178,16 @@ def undo(event):
         current_possible_selections = []
         current_polygon = []
         set_status_label_text("Undid last action.")
+
+        # Mark new items for redraw.
+        mark_all_items_for_redraw()
         redraw()
+
     elif len(drawing_history) == 2:
         drawing_history = [([], [])]
+
+        # Mark current items for "redraw" (will be removed).
+        mark_all_items_for_redraw()
 
         items = []
         edges = []
@@ -214,6 +224,7 @@ def toggle_snap():
 
 
 def resize(event):
+    mark_all_items_for_redraw()
     drawer.clear()
     redraw()
 
@@ -226,7 +237,10 @@ def redraw():
     global snapped_item_radial
     global snapped_item_angular
 
-    drawer.clear()
+    # drawer.clear()
+
+    # Make sure to always update the selected nodes.
+    redraw_selected_nodes()
     drawer.draw(items, edges, selected_nodes, mouse_location,
                 snapped_item_radial, snapped_item_angular)
 
@@ -241,6 +255,11 @@ def add_circle_at(position):
                             color=0)
     items.append(circle)
     index = len(items) - 1
+
+    # The selected nodes are about to change, we need to redraw them.
+    for selected_node in selected_nodes:
+        mark_item_for_redraw(items[selected_node])
+
     selected_nodes = [index]
 
     # After adding a circle, we save the current state to the history.
@@ -258,6 +277,10 @@ def add_point_at(position):
     point = drawing.point(coordinate=position, color=0)
     items.append(point)
     index = len(items) - 1
+
+    # The selected nodes are about to change, we need to redraw them.
+    for selected_node in selected_nodes:
+        mark_item_for_redraw(items[selected_node])
     selected_nodes = [index]
 
     # After adding a point, we save the current state to the history.
@@ -277,6 +300,7 @@ def add_edge_between(node1, node2):
         if (edge.index1 == node1
                 and edge.index2 == node2) or (edge.index2 == node1
                                               and edge.index1 == node2):
+            mark_edge_for_redraw(edge)
             edges.remove(edge)
             edge_already_present = True
             break
@@ -293,10 +317,7 @@ def add_edge_between(node1, node2):
 def set_coordinate_of_item_to(item_index, coordinate):
     item = items[item_index]
     item.coordinate = coordinate
-
-    # If the item is a circle, its circle points need to move now.
-    if drawing.is_circle_item(item):
-        item.circle_points = []
+    mark_item_for_redraw(item)
 
     items[item_index] = item
 
@@ -304,10 +325,71 @@ def set_coordinate_of_item_to(item_index, coordinate):
     for edge in edges:
         if edge.index1 == selected_nodes[-1] or edge.index2 == selected_nodes[
                 -1]:
-            edge.edge_points = []
-            edge.hypercycle_points = None
+            mark_edge_for_redraw(edge)
 
     redraw()
+
+
+def mark_item_for_redraw(item):
+    if not item.drawn_items:
+        return
+
+    # If the item is a circle, its circle points need to move now.
+    if drawing.is_circle_item(item):
+        mark_circle_for_redraw(item)
+    else:
+        mark_point_for_redraw(item)
+
+
+def mark_edge_for_redraw(edge):
+    edge.edge_points = []
+
+    if edge.drawn_items:
+        for drawn_item in edge.drawn_items:
+            drawer.canvas.delete(drawn_item)
+        edge.drawn_items = None
+
+    if edge.drawn_hypercycle_items:
+        for drawn_item in edge.drawn_hypercycle_items:
+            drawer.canvas.delete(drawn_item)
+            edge.drawn_hypercycle_items = None
+    edge.hypercycle_points = None
+
+
+def mark_point_for_redraw(point):
+    for drawn_item in point.drawn_items:
+        drawer.canvas.delete(drawn_item)
+    point.drawn_items = None
+
+
+def mark_circle_for_redraw(circle):
+    for drawn_item in circle.drawn_items:
+        drawer.canvas.delete(drawn_item)
+    circle.drawn_items = None
+    circle.circle_points = []
+
+
+def mark_all_items_for_redraw():
+    global items
+    global edges
+
+    for item in items:
+        mark_item_for_redraw(item)
+
+    for edge in edges:
+        mark_edge_for_redraw(edge)
+
+    mark_regular_grid_for_redraw()
+
+
+def mark_regular_grid_for_redraw():
+    if not drawer.regular_grid_items:
+        return
+
+    for drawn_item in drawer.regular_grid_items:
+        drawer.canvas.delete(drawn_item)
+
+    drawer.regular_grid_items = None
 
 
 def remove_current_polygon():
@@ -398,9 +480,9 @@ def update_help_label():
         help_text = \
             "Mouse 1: Select object\n" +\
             "Shift Mouse 1: Add to selection\n" +\
-            "E: Add/remove edge between selected objects\n" +\
-            "H: Add hypercycle around the line between 2 selected objects\n" +\
-            "R: Set radii of selected objects to match radius of primary selection"
+            "e: Add/remove edge between selected objects\n" +\
+            "h: Add hypercycle around the line between 2 selected objects\n" +\
+            "r: Set radii of selected objects to match radius of primary selection"
 
     elif current_mode == Mode.translate:
         help_text = \
@@ -411,7 +493,7 @@ def update_help_label():
     elif current_mode == Mode.circle:
         help_text = \
             "Mouse 1: Add a circle\n" +\
-            "O: Add circle centered at the origin"
+            "o: Add circle centered at the origin"
     else:
         help_text = \
             "Mouse 1: Add polygon point\n" +\
@@ -419,11 +501,15 @@ def update_help_label():
             "Shift Mouse 2: Close polygon"
 
     help_text += "\n" +\
-        "G: Add/remove grid\n" +\
-        "C: Change color of selected objects\n" +\
-        "D: Clear all\n" +\
-        "Z: Undo\n" +\
+        "g: Add/remove grid\n" +\
+        "G: Add/remove drawing of embedded input graph\n" +\
+        "R: Add/remove regular grid\n" +\
+        "c: Change color of selected objects\n" +\
+        "d: Clear all\n" +\
+        "z: Undo\n" +\
         "Mouse wheel / (+,-): Change current radius\n" +\
+        "Shift Mouse wheel / (*,_): Change radii of selected items\n" +\
+        "Control Mouse wheel / (Up,Down): Change scale\n" +\
         "Backspace: Delete selected objects\n" +\
         "Esc: Clear selection"
 
@@ -434,7 +520,9 @@ def update_status_label():
     global items
     global selected_nodes
 
-    status_label_text = "Current circle radius: " + "{:1.4f}".format(
+    status_label_text = "Current scale: " + "{:1.4f}".format(
+        drawer.scale) + "\n"
+    status_label_text += "Current circle radius: " + "{:1.4f}".format(
         current_circle_size) + "\n"
 
     if len(selected_nodes) > 0:
@@ -458,6 +546,16 @@ def update_status_label():
     set_status_label_text(status_label_text)
 
 
+def redraw_selected_nodes():
+    global items
+    global selected_nodes
+
+    for index in selected_nodes:
+        item = items[index]
+        if item.drawn_items:
+            mark_item_for_redraw(item)
+
+
 # Mouse Interaction
 def mouse_down(event):
     global drawer
@@ -471,6 +569,9 @@ def mouse_down(event):
     if current_mode == Mode.select:
         global current_possible_selections
 
+        # The selected nodes will now change, make sure to redraw the currently
+        # selected ones.
+        redraw_selected_nodes()
         selected_nodes = []
 
         def distance_cmp(a, b):
@@ -606,6 +707,9 @@ def shift_mouse_down(event):
 
         current_possible_selections = [x[0] for x in possible_selections]
 
+        # Selected nodes are about to change, we need to redraw them.
+        redraw_selected_nodes()
+
         if len(current_possible_selections) > 0:
             index = current_possible_selections[0]
 
@@ -635,8 +739,7 @@ def mouse_moved(event):
     global items
     mouse_location = euclidean_coordinates.euclidean_coordinate(
         event.x, event.y)
-    #  set_coordinate_of_item_to(current_polygon[-1], mouse_location)
-    set_location_of_item(mouse_location, current_polygon[-1])
+    set_location_of_item_with_index(mouse_location, current_polygon[-1])
 
     status_text = "Polygon Points:\n"
     for polygon_point in current_polygon:
@@ -681,9 +784,9 @@ def mouse_dragged(event):
 
 # Updates the location of an item. If snap is enabled, will snap to possible
 # radii or angles.
-def set_location_of_item(location, item):
+def set_location_of_item_with_index(location, item_index):
     if not is_snap_enabled:
-        set_coordinate_of_item_to(item, location)
+        set_coordinate_of_item_to(item_index, location)
         return
 
     # If snap is enabled, we now look for possible snap targets.
@@ -694,6 +797,8 @@ def set_location_of_item(location, item):
     # At first we assume that the dragged item doesn't snap to anything.
     snapped_item_radial = None
     snapped_item_angular = None
+
+    new_euclidean_coordinate = location
 
     dragged_item_index = selected_nodes[-1]
     new_coordinate = drawer.hyperbolic_coordinate_from_canvas_point(location)
@@ -732,7 +837,8 @@ def set_location_of_item(location, item):
 
         new_euclidean_coordinate = drawer.canvas_point_from_hyperbolic_coordinate(
             new_coordinate)
-        set_coordinate_of_item_to(dragged_item_index, new_euclidean_coordinate)
+
+    set_coordinate_of_item_to(item_index, new_euclidean_coordinate)
 
 
 def translate_with_location(location):
@@ -744,7 +850,7 @@ def translate_with_location(location):
 
     # Update the location of the primary selection and snap to radii and
     # angles, if enabled.
-    set_location_of_item(location, selected_nodes[-1])
+    set_location_of_item_with_index(location, selected_nodes[-1])
     update_status_label()
 
 
@@ -778,7 +884,7 @@ def mouse_scrolled_with_delta(delta):
             if edge.index1 == selected_node or edge.index2 == selected_node:
                 if edge.hypercycle_radius > 0:
                     edge.hypercycle_radius = current_circle_size
-                    edge.hypercycle_points = None
+                    mark_edge_for_redraw(edge)
 
     update_status_label()
     redraw()
@@ -821,10 +927,19 @@ def shift_mouse_scrolled_with_delta(delta):
         # If the item is part of an edge, the edge needs to be updated.
         for edge in edges:
             if edge.index1 == selected_node or edge.index2 == selected_node:
-                edge.edge_points = []
-                edge.hypercycle_points = None
+                mark_edge_for_redraw(edge)
 
     update_status_label()
+    redraw()
+
+
+def control_mouse_scrolled_with_delta(delta):
+    global drawer
+
+    drawer.scale = drawer.scale + 10 * delta
+
+    update_status_label()
+    mark_all_items_for_redraw()
     redraw()
 
 
@@ -844,12 +959,24 @@ def shift_mouse_scrolled(event):
     shift_mouse_scrolled_with_delta(event.delta)
 
 
+def control_mouse_scrolled(event):
+    control_mouse_scrolled_with_delta(event.delta)
+
+
 def shift_mouse_scroll_up(event):
     shift_mouse_scrolled_with_delta(1)
 
 
 def shift_mouse_scroll_down(event):
     shift_mouse_scrolled_with_delta(-1)
+
+
+def control_mouse_scroll_up(event):
+    control_mouse_scrolled_with_delta(1)
+
+
+def control_mouse_scroll_down(event):
+    control_mouse_scrolled_with_delta(-1)
 
 
 # Deletes the selected items and possible edges between them.
@@ -875,8 +1002,13 @@ def delete_items(items_to_delete):
                 edges_to_remove.append(index)
 
         for edge_index in reversed(sorted(edges_to_remove)):
+            # Mark edge for redraw. (Will not actually be redrawn due to
+            # deletion.)
+            mark_edge_for_redraw(edges[edge_index])
             del edges[edge_index]
 
+        # Mark item for redraw. (Will not actually be redrawn due to deletion.)
+        mark_item_for_redraw(items[node_to_remove])
         del items[node_to_remove]
 
     for index, edge in enumerate(edges):
@@ -894,6 +1026,7 @@ def delete_pressed(event):
     global edges
     global selected_nodes
 
+    # Precisely the selected nodes will be deleted. We need to "redraw" them.
     delete_items(selected_nodes)
     del selected_nodes[:]
 
@@ -948,8 +1081,17 @@ def c_pressed(event):
         item.color = selected_node_color_index
         items[selected_node] = item
 
+        # The color of the item changed, we need to redraw it.
+        mark_item_for_redraw(item)
+
+        # Additionally, we need to redraw the edges associated with the item.
+        for edge in edges:
+            if edge.index1 == selected_node or edge.index2 == selected_nodes:
+                mark_edge_for_redraw(edge)
+
     # After changing colors, we save the current state to the history.
     save_current_state()
+
     redraw()
 
 
@@ -976,11 +1118,16 @@ def d_pressed(event):
     global items
     global edges
     global selected_nodes
+
+    # Everything needs to be "redrawn"
+    mark_all_items_for_redraw()
+
     items = []
     edges = []
     selected_nodes = []
     current_circle_size = 10.0
     drawer.grid_radius = 0.0
+    drawer.regular_grid_depth = 0
 
     set_status_label_text("Cleared")
     redraw()
@@ -989,15 +1136,17 @@ def d_pressed(event):
 def e_pressed(event):
     global current_mode
 
-    if current_mode == Mode.select:
-        global selected_nodes
+    if not current_mode == Mode.select:
+        return
 
-        for i in range(0, len(selected_nodes)):
-            for j in range(i + 1, len(selected_nodes)):
-                selected_node1 = selected_nodes[i]
-                selected_node2 = selected_nodes[j]
-                add_edge_between(selected_node1, selected_node2)
-        redraw()
+    global selected_nodes
+
+    for i in range(0, len(selected_nodes)):
+        for j in range(i + 1, len(selected_nodes)):
+            selected_node1 = selected_nodes[i]
+            selected_node2 = selected_nodes[j]
+            add_edge_between(selected_node1, selected_node2)
+    redraw()
 
 
 def g_pressed(event):
@@ -1012,100 +1161,102 @@ def g_pressed(event):
 
 
 def capital_g_pressed(event):
-    if len(sys.argv) > 2:
-        graph_file_name = sys.argv[1]
-        embedding_file_name = sys.argv[2]
-
-        global items
-        global edges
-
-        # We're drawing adding the edges according to the
-        # indices in the edge list.
-        # If we already have items, we have to offset these
-        # indices.
-        index_offset = len(items)
-
-        embedding = dict()
-        with open(embedding_file_name, "rb") as embedding_file:
-            lines = embedding_file.readlines()
-
-            center = euclidean_coordinates.euclidean_coordinate(
-                canvas.winfo_width() / 2.0,
-                canvas.winfo_height() / 2.0)
-
-            for line in lines:
-                line = line.strip()
-                line_components = line.split()
-                if len(line_components) > 0:
-                    vertex = int(line_components[0])
-                    x = float(line_components[1]) * drawer.scale
-                    y = float(line_components[2]) * drawer.scale
-
-                    coordinate = euclidean_coordinates.euclidean_coordinate(
-                        center.x + x, center.y + y)
-                    # relative_coordinate = euclidean_coordinates.coordinate_relative_to_coordinate(coordinate, center)
-
-                    point = drawing.point(coordinate=coordinate, color=0)
-                    items.append(point)
-
-        with open(graph_file_name, "rb") as graph_file:
-            lines = graph_file.readlines()
-
-            for line in lines:
-                line = line.strip()
-                line_components = line.split()
-
-                node1 = int(line_components[0]) + index_offset
-                node2 = int(line_components[1]) + index_offset
-
-                new_edge = drawing.edge(node1, node2)
-                edges.append(new_edge)
-
-        redraw()
-    else:
+    if len(sys.argv) <= 2:
         set_status_label_text(
             "No graph files provided. Launch Hipe with: python3 Hipe.py path/to/edgelist.txt path/to/embedding.txt"
         )
+        return
+
+    graph_file_name = sys.argv[1]
+    embedding_file_name = sys.argv[2]
+
+    global items
+    global edges
+
+    # We're drawing adding the edges according to the
+    # indices in the edge list.
+    # If we already have items, we have to offset these
+    # indices.
+    index_offset = len(items)
+
+    embedding = dict()
+    with open(embedding_file_name, "rb") as embedding_file:
+        lines = embedding_file.readlines()
+
+        center = euclidean_coordinates.euclidean_coordinate(
+            canvas.winfo_width() / 2.0,
+            canvas.winfo_height() / 2.0)
+
+        for line in lines:
+            line = line.strip()
+            line_components = line.split()
+            if len(line_components) > 0:
+                vertex = int(line_components[0])
+                x = float(line_components[1]) * drawer.scale
+                y = float(line_components[2]) * drawer.scale
+
+                coordinate = euclidean_coordinates.euclidean_coordinate(
+                    center.x + x, center.y + y)
+
+                point = drawing.point(coordinate=coordinate, color=0)
+                items.append(point)
+
+    with open(graph_file_name, "rb") as graph_file:
+        lines = graph_file.readlines()
+
+        for line in lines:
+            line = line.strip()
+            line_components = line.split()
+
+            node1 = int(line_components[0]) + index_offset
+            node2 = int(line_components[1]) + index_offset
+
+            new_edge = drawing.edge(node1, node2)
+            edges.append(new_edge)
+
+    redraw()
 
 
 def h_pressed(event):
     global current_mode
 
-    if current_mode == Mode.select:
-        global selected_nodes
-        global edges
+    if not current_mode == Mode.select:
+        return
 
-        if len(selected_nodes) == 2:
-            selected_node1 = selected_nodes[0]
-            selected_node2 = selected_nodes[1]
+    global selected_nodes
+    global edges
 
-            edge_index = -1
-            for index, edge in enumerate(edges):
-                if (edge.index1 == selected_node1
-                        and edge.index2 == selected_node2) or (
-                            edge.index2 == selected_node1
-                            and edge.index1 == selected_node2):
-                    edge_index = index
-                    break
+    if len(selected_nodes) == 2:
+        selected_node1 = selected_nodes[0]
+        selected_node2 = selected_nodes[1]
 
-            if edge_index >= 0:
+        edge_index = -1
+        for index, edge in enumerate(edges):
+            if (edge.index1 == selected_node1 and edge.index2 == selected_node2
+                ) or (edge.index2 == selected_node1
+                      and edge.index1 == selected_node2):
+                edge_index = index
+                break
 
-                # If the edge already had a hypercycle, we now remove it
-                if edge.hypercycle_radius > 0:
-                    edge.hypercycle_radius = 0
-                    edge.hypercycle_points = None
-                else:
-                    edges[edge_index].hypercycle_radius = current_circle_size
+        if edge_index >= 0:
+            # If the edge already had a hypercycle, we now remove it
+            if edge.hypercycle_radius > 0:
+                edge.hypercycle_radius = 0
+                edge.hypercycle_points = None
             else:
-                edge = drawing.edge(selected_node1, selected_node2)
-                edge.hypercycle_radius = current_circle_size
-                edges.append(edge)
-
-            redraw()
-
+                edges[edge_index].hypercycle_radius = current_circle_size
         else:
-            set_status_label_text(
-                "Select exactly 2 nodes to add a hypercycle!")
+            edge = drawing.edge(selected_node1, selected_node2)
+            edge.hypercycle_radius = current_circle_size
+            edges.append(edge)
+
+        # We have just changed the status of this edge. It needs to be marked
+        # for redrawing.
+        mark_edge_for_redraw(edge)
+        redraw()
+
+    else:
+        set_status_label_text("Select exactly 2 nodes to add a hypercycle!")
 
 
 def m_pressed(event):
@@ -1115,53 +1266,67 @@ def m_pressed(event):
 def r_pressed(event):
     global current_mode
 
-    if current_mode == Mode.select or current_mode == Mode.translate:
-        global selected_nodes
-        global items
-        global edges
+    if not (current_mode == Mode.select or current_mode == Mode.translate):
+        return
 
-        if len(selected_nodes) > 1:
-            center = euclidean_coordinates.euclidean_coordinate(
-                canvas.winfo_width() / 2.0,
-                canvas.winfo_height() / 2.0)
-            reference_point = items[selected_nodes[-1]].coordinate
-            relative_reference_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                reference_point, center)
-            native_reference_point = relative_reference_point.to_native_coordinate_with_scale(
-                1.0)
-            reference_radius = native_reference_point.r
-            for i in range(0, len(selected_nodes)):
-                item = items[selected_nodes[i]]
-                original_point = item.coordinate
-                relative_original_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                    original_point, center)
-                native_original_point = relative_original_point.to_native_coordinate_with_scale(
-                    1.0)
-                native_original_point.r = reference_radius
-                relative_modified_point = native_original_point.to_euclidean_coordinate_with_scale(
-                    1.0)
-                modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                    center, relative_modified_point)
-                item.coordinate = modified_point
+    global selected_nodes
+    global items
+    global edges
 
-                # If the item is a circle, its circle points need to move now.
-                if drawing.is_circle_item(item):
-                    item.circle_points = []
+    if len(selected_nodes) <= 1:
+        return
 
-                items[selected_nodes[i]] = item
+    center = euclidean_coordinates.euclidean_coordinate(
+        canvas.winfo_width() / 2.0,
+        canvas.winfo_height() / 2.0)
+    reference_point = items[selected_nodes[-1]].coordinate
+    relative_reference_point = euclidean_coordinates.coordinate_relative_to_coordinate(
+        reference_point, center)
+    native_reference_point = relative_reference_point.to_native_coordinate_with_scale(
+        1.0)
+    reference_radius = native_reference_point.r
+    for i in range(0, len(selected_nodes)):
+        item = items[selected_nodes[i]]
+        original_point = item.coordinate
+        relative_original_point = euclidean_coordinates.coordinate_relative_to_coordinate(
+            original_point, center)
+        native_original_point = relative_original_point.to_native_coordinate_with_scale(
+            1.0)
+        native_original_point.r = reference_radius
+        relative_modified_point = native_original_point.to_euclidean_coordinate_with_scale(
+            1.0)
+        modified_point = euclidean_coordinates.coordinate_relative_to_coordinate(
+            center, relative_modified_point)
+        item.coordinate = modified_point
 
-                # If the item is part of an edge, the edge needs to be updated.
-                for edge in edges:
-                    if edge.index1 == selected_nodes[
-                            i] or edge.index2 == selected_nodes[i]:
-                        edge.edge_points = []
-                        edge.hypercycle_points = None
+        # If the item is a circle, its circle points need to move now.
+        if drawing.is_circle_item(item):
+            item.circle_points = []
 
-            # After adjusting circle sizes collectively, we save the current state to the history.
-            save_current_state()
+        items[selected_nodes[i]] = item
 
-            update_status_label()
-            redraw()
+        # If the item is part of an edge, the edge needs to be updated.
+        for edge in edges:
+            if edge.index1 == selected_nodes[
+                    i] or edge.index2 == selected_nodes[i]:
+                edge.edge_points = []
+                edge.hypercycle_points = None
+
+    # After adjusting circle sizes collectively, we save the current state to the history.
+    save_current_state()
+
+    update_status_label()
+    redraw()
+
+
+def capital_r_pressed(event):
+    if drawer.regular_grid_depth > 0:
+        drawer.regular_grid_depth = 0
+    else:
+        drawer.regular_grid_depth = 3
+
+    mark_regular_grid_for_redraw()
+    redraw()
 
 
 def s_pressed(event):
@@ -1192,7 +1357,6 @@ gui.svg_save_button.configure(command=save_as_svg)
 
 # So we see the initial circle size
 update_mode_indicator()
-update_status_label()
 update_help_label()
 
 canvas = gui.canvas
@@ -1216,6 +1380,7 @@ root.bind("<space>", space_pressed)
 root.bind("<Escape>", escape_pressed)
 root.bind("<MouseWheel>", mouse_scrolled)
 root.bind("<Shift-MouseWheel>", shift_mouse_scrolled)
+root.bind("<Control-MouseWheel>", control_mouse_scrolled)
 root.bind("c", c_pressed)
 root.bind("d", d_pressed)
 root.bind("e", e_pressed)
@@ -1226,12 +1391,15 @@ root.bind("m", m_pressed)
 root.bind("o", o_pressed)
 root.bind("p", p_pressed)
 root.bind("r", r_pressed)
+root.bind("R", capital_r_pressed)
 root.bind("s", s_pressed)
 root.bind("t", t_pressed)
 root.bind("+", mouse_scroll_up)
 root.bind("-", mouse_scroll_down)
 root.bind("*", shift_mouse_scroll_up)
 root.bind("_", shift_mouse_scroll_down)
+root.bind("<Up>", control_mouse_scroll_up)
+root.bind("<Down>", control_mouse_scroll_down)
 root.bind("Command-z", undo)
 root.bind("Control-z", undo)
 root.bind("z", undo)
@@ -1240,8 +1408,13 @@ root.bind("F2", toggle_snap)
 root.bind("F3", toggle_snap)
 root.bind("F4", toggle_snap)
 
+# The actual drawer.
 scale = 35.0
 drawer = drawing.drawer(canvas, scale)
+
+# The status_label needs to know about the drawer. Therefore, it is initialized
+# after the drawer was set.
+update_status_label()
 
 # Graph Input:
 
