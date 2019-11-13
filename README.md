@@ -11,6 +11,7 @@ native representation.  Its controls are inspired by
 1. Make sure you have Python 3 installed
 1. Install [Tk](http://www.tkdocs.com/tutorial/install.html) if not installed
    already.
+1. Install the latest version of [networkx](https://networkx.github.io).
 1. Download the code from this repository.
 
 ## Usage
