@@ -17,25 +17,27 @@
 # You can contact the author via email: max.katzmann@gmail.com
 
 from tkinter import *
+import math
+
+import drawing
 import euclidean_coordinates
 import embedded_graph
 import native_coordinates
-import math
 
 
 class point:
-    def __init__(self, coordinate, color):
-        self.coordinate = coordinate
+    def __init__(self, coordinate_H, color):
+        self.coordinate_H = coordinate_H
         self.color = color
         self.drawn_items = None
 
 
 class circle:
-    def __init__(self, coordinate, radius, color):
-        self.coordinate = coordinate
+    def __init__(self, coordinate_H, radius, color):
+        self.coordinate_H = coordinate_H
         self.radius = radius
         self.color = color
-        self.circle_points = []
+        self.circle_points_E = []
         self.drawn_items = None
 
 
@@ -43,11 +45,12 @@ class edge:
     def __init__(self, index1, index2):
         self.index1 = index1
         self.index2 = index2
-        self.edge_points = []
+        self.edge_points_E = []
         self.drawn_items = None
 
         self.hypercycle_radius = 0
-        self.hypercycle_points = None
+        self.hypercycle_upper_points_E = None
+        self.hypercycle_lower_points_E = None
         self.drawn_hypercycle_items = None
 
     def __str__(self):
@@ -71,6 +74,11 @@ class drawer:
     point_size = 3
 
     def __init__(self, canvas, scale):
+
+        # The items and edges that are drawn.
+        self.items = []
+        self.edges = []
+
         self.canvas = canvas
         self.scale = scale
 
@@ -82,6 +90,7 @@ class drawer:
 
         # The grid
         self.grid_radius = 0
+        self.grid_items = None
 
         # The regular grid
         self.regular_grid = None
@@ -97,33 +106,37 @@ class drawer:
         # mouse would select.
         self.mouse_location_cirlce_items = None
 
-    def canvas_point_from_hyperbolic_coordinate(self, point):
+        # The items representing the origin.
+        self.drawn_origin_items = None
 
-        center = euclidean_coordinates.euclidean_coordinate(
+    def canvas_point_from_hyperbolic_coordinate(self, coordinate_H):
+
+        center_E = euclidean_coordinates.euclidean_coordinate(
             self.canvas.winfo_width() / 2.0,
             self.canvas.winfo_height() / 2.0)
 
-        euclidean_point = point.to_euclidean_coordinate_with_scale(self.scale)
-
-        euclidean_point.x = center.x - euclidean_point.x
-        euclidean_point.y = center.y - euclidean_point.y
-
-        return euclidean_point
-
-    def hyperbolic_coordinate_from_canvas_point(self, point):
-        center = euclidean_coordinates.euclidean_coordinate(
-            self.canvas.winfo_width() / 2.0,
-            self.canvas.winfo_height() / 2.0)
-        relative_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-            point, center)
-        native_point = relative_point.to_native_coordinate_with_scale(
+        coordinate_E = coordinate_H.to_euclidean_coordinate_with_scale(
             self.scale)
-        return native_point
 
-    def draw(self, items, edges, selected_nodes, mouse_location,
+        coordinate_E.x = center_E.x - coordinate_E.x
+        coordinate_E.y = center_E.y - coordinate_E.y
+
+        return coordinate_E
+
+    def hyperbolic_coordinate_from_canvas_point(self, coordinate_E):
+        center_E = euclidean_coordinates.euclidean_coordinate(
+            self.canvas.winfo_width() / 2.0,
+            self.canvas.winfo_height() / 2.0)
+        relative_E = euclidean_coordinates.coordinate_relative_to_coordinate(
+            coordinate_E, center_E)
+        coordinate_H = relative_E.to_native_coordinate_with_scale(self.scale)
+        return coordinate_H
+
+    def draw(self, items, edges, selected_nodes, mouse_location_E,
              snapped_item_radial, snapped_item_angular):
-        self.draw_with_functions(items, edges, selected_nodes, mouse_location,
-                                 self.draw_path, self.draw_circle)
+        self.draw_with_functions(items, edges, selected_nodes,
+                                 mouse_location_E, self.draw_path,
+                                 self.draw_circle)
 
         # Clear mouse location circle.
         if self.mouse_location_cirlce_items:
@@ -138,38 +151,33 @@ class drawer:
             self.snap_items = None
 
         # Drawing the selection circle, if there is one.
-        if mouse_location is not None:
+        if mouse_location_E is not None:
             self.mouse_location_cirlce_items = self.draw_circle(
-                mouse_location, self.selection_radius, 0.0, 2.0 * math.pi,
+                mouse_location_E, self.selection_radius, 0.0, 2.0 * math.pi,
                 False, "", self.secondary_selection_color, 1.0)
 
         # Drawing the snapping guides if there are any.
         if len(selected_nodes) > 0:
-            center = euclidean_coordinates.euclidean_coordinate(
+            center_E = euclidean_coordinates.euclidean_coordinate(
                 self.canvas.winfo_width() / 2.0,
                 self.canvas.winfo_height() / 2.0)
             selected_index = selected_nodes[-1]
-            selected_coordinate = items[selected_index].coordinate
-            selected_coordinate_relative = euclidean_coordinates.coordinate_relative_to_coordinate(
-                selected_coordinate, center)
-            radius = selected_coordinate_relative.to_native_coordinate_with_scale(
-                1.0).r
-            selected_coordinate_native = self.hyperbolic_coordinate_from_canvas_point(
-                selected_coordinate)
+            selected_coordinate_H = items[selected_index].coordinate_H
+            selected_coordinate_E = self.canvas_point_from_hyperbolic_coordinate(
+                selected_coordinate_H)
+            radius = selected_coordinate_H.r * self.scale
 
             self.snap_items = []
 
             if snapped_item_radial is not None:
-                snapped_coordinate = items[snapped_item_radial].coordinate
-                snapped_coordinate_native = self.hyperbolic_coordinate_from_canvas_point(
-                    snapped_coordinate)
+                snapped_coordinate_H = items[snapped_item_radial].coordinate_H
 
                 # The radii of the two coordinate should match since we snapped to it.
                 # We now draw the circle connecting the two
                 circle_from_select_to_snapped = True
 
-                signed_angular_distance = snapped_coordinate_native.phi - \
-                    selected_coordinate_native.phi
+                signed_angular_distance = snapped_coordinate_H.phi - \
+                    selected_coordinate_H.phi
                 if signed_angular_distance > 0:
                     if signed_angular_distance < math.pi:
                         circle_from_select_to_snapped = False
@@ -177,12 +185,12 @@ class drawer:
                     if signed_angular_distance < -math.pi:
                         circle_from_select_to_snapped = False
 
-                start_angle = selected_coordinate_native.phi
-                end_angle = snapped_coordinate_native.phi
+                start_angle = selected_coordinate_H.phi
+                end_angle = snapped_coordinate_H.phi
 
                 if not circle_from_select_to_snapped:
-                    start_angle = snapped_coordinate_native.phi
-                    end_angle = selected_coordinate_native.phi
+                    start_angle = snapped_coordinate_H.phi
+                    end_angle = selected_coordinate_H.phi
 
                 drawing_start_angle = ((math.pi - start_angle) +
                                        (2.0 * math.pi)) % (2.0 * math.pi)
@@ -190,19 +198,23 @@ class drawer:
                                      (2.0 * math.pi)) % (2.0 * math.pi)
 
                 radial_snap_items = self.draw_circle(
-                    center, radius, drawing_start_angle, drawing_end_angle,
+                    center_E, radius, drawing_start_angle, drawing_end_angle,
                     circle_from_select_to_snapped, "",
                     self.secondary_selection_color, 1.0)
                 self.snap_items += radial_snap_items
 
             if snapped_item_angular is not None:
-                snapped_coordinate = items[snapped_item_angular].coordinate
+                selected_coordinate_E = self.canvas_point_from_hyperbolic_coordinate(
+                    selected_coordinate_H)
+                snapped_coordinate_H = items[snapped_item_angular].coordinate_H
+                snapped_coordinate_E = self.canvas_point_from_hyperbolic_coordinate(
+                    snapped_coordinate_H)
                 angular_snap_items = self.draw_line_from_coordinate_to_coordinate(
-                    selected_coordinate, snapped_coordinate,
+                    selected_coordinate_E, snapped_coordinate_E,
                     self.secondary_selection_color, 1.0)
                 self.snap_items.append(angular_snap_items)
 
-    def draw_embedded_graph(self, center, path_func, circle_func):
+    def draw_embedded_graph(self, center_E, path_func, circle_func):
         if not self.embedded_graph:
             return
 
@@ -213,12 +225,10 @@ class drawer:
 
         items = []
         for node in self.embedded_graph.embedding:
-            coordinate = self.embedded_graph.embedding[node]
-            canvas_coordinate = self.canvas_point_from_hyperbolic_coordinate(
-                coordinate)
-            items.append(point(canvas_coordinate, 0))
+            coordinate_H = self.embedded_graph.embedding[node]
+            items.append(point(coordinate_H, 0))
 
-        self.embedded_graph_items += self.draw_points(items, [], center,
+        self.embedded_graph_items += self.draw_points(items, [], center_E,
                                                       circle_func)
 
         # Create the edges.
@@ -226,10 +236,10 @@ class drawer:
         for u, v in self.embedded_graph.graph.edges:
             edges.append(edge(u, v))
 
-        self.embedded_graph_items += self.draw_edges(edges, items, center,
+        self.embedded_graph_items += self.draw_edges(edges, items, center_E,
                                                      path_func)
 
-    def draw_regular_grid(self, center, path_func, circle_func):
+    def draw_regular_grid(self, center_E, path_func, circle_func):
         if self.regular_grid_depth <= 0:
             return
 
@@ -245,12 +255,10 @@ class drawer:
         # Create the points describing the coordinates.
         items = []
         for node in self.regular_grid.embedding:
-            coordinate = self.regular_grid.embedding[node]
-            canvas_coordinate = self.canvas_point_from_hyperbolic_coordinate(
-                coordinate)
-            items.append(point(canvas_coordinate, 0))
+            coordinate_H = self.regular_grid.embedding[node]
+            items.append(point(coordinate_H, 0))
 
-        self.regular_grid_items += self.draw_points(items, [], center,
+        self.regular_grid_items += self.draw_points(items, [], center_E,
                                                     circle_func)
 
         # Create the edges.
@@ -258,12 +266,16 @@ class drawer:
         for u, v in self.regular_grid.graph.edges:
             edges.append(edge(u, v))
 
-        self.regular_grid_items += self.draw_edges(edges, items, center,
+        self.regular_grid_items += self.draw_edges(edges, items, center_E,
                                                    path_func)
 
-    def draw_grid(self, center, path_func, circle_func):
+    def draw_grid(self, center_E, path_func, circle_func):
         # Drawing the grid
         if self.grid_radius <= 0:
+            return
+
+        # Don't redraw if we already drew it.
+        if self.grid_items is not None:
             return
 
         grid_color = "gray"
@@ -271,43 +283,43 @@ class drawer:
         layer_width = math.log(2) / alpha
         number_of_layers = math.floor(self.grid_radius / layer_width)
 
+        grid_items = []
+
         # Drawing the layers
         for layer in range(number_of_layers):
             outer_radius = self.grid_radius - layer * layer_width
             inner_radius = self.grid_radius - (layer + 1) * layer_width
-            circle_func(center, self.scale * outer_radius, 0.0, 2.0 * math.pi,
-                        True, "", grid_color, 1.0)
+            grid_items += circle_func(center_E, self.scale * outer_radius, 0.0,
+                                      2.0 * math.pi, True, "", grid_color, 1.0)
 
             # Drawing the cell borders
             number_of_cells_in_layer = math.ceil(
                 math.pow(2, number_of_layers - layer))
             angular_cell_width = 2.0 * math.pi / number_of_cells_in_layer
             for cell in range(number_of_cells_in_layer):
-                inner_cell_point = native_coordinates.polar_coordinate(
+                inner_cell_point_H = native_coordinates.polar_coordinate(
                     inner_radius, cell * angular_cell_width)
-                outer_cell_point = native_coordinates.polar_coordinate(
+                outer_cell_point_H = native_coordinates.polar_coordinate(
                     outer_radius, cell * angular_cell_width)
 
-                converted_inner_point = inner_cell_point.to_euclidean_coordinate_with_scale(
-                    self.scale)
-                converted_outer_point = outer_cell_point.to_euclidean_coordinate_with_scale(
-                    self.scale)
+                inner_cell_point_E = self.canvas_point_from_hyperbolic_coordinate(
+                    inner_cell_point_H)
+                outer_cell_point_E = self.canvas_point_from_hyperbolic_coordinate(
+                    outer_cell_point_H)
 
-                euclidean_inner_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                    center, converted_inner_point)
-                euclidean_outer_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                    center, converted_outer_point)
-
-                path_func([euclidean_inner_point, euclidean_outer_point],
-                          False, grid_color, 1.0)
+                grid_items += path_func(
+                    [inner_cell_point_E, outer_cell_point_E], False,
+                    grid_color, 1.0)
 
         # Drawing the inner radius of the inner most layer
-        circle_func(
-            center,
+        grid_items += circle_func(
+            center_E,
             self.scale * (self.grid_radius - number_of_layers * layer_width),
             0.0, 2.0 * math.pi, True, "", grid_color, 1.0)
 
-    def draw_circles(self, items, selected_nodes, center, mouse_location,
+        self.grid_items = grid_items
+
+    def draw_circles(self, items, selected_nodes, center_E, mouse_location_E,
                      path_func, circle_func):
         for index, item in enumerate(items):
             if not is_circle_item(item):
@@ -320,58 +332,55 @@ class drawer:
             # Check whether we should highlight the whole circle instead of only the point.
             should_highlight_primary_selection = False
 
+            coordinate_E = self.canvas_point_from_hyperbolic_coordinate(
+                item.coordinate_H)
+
             if index in selected_nodes:
                 if selected_nodes[-1] == index:
                     item.drawn_items = circle_func(
-                        item.coordinate, self.point_size, 0.0, 2.0 * math.pi,
+                        coordinate_E, self.point_size, 0.0, 2.0 * math.pi,
                         True, self.primary_selection_color,
                         self.primary_selection_color,
                         self.selection_border_size)
-                    if mouse_location is not None:
+                    if mouse_location_E is not None:
                         should_highlight_primary_selection = True
                 else:
                     item.drawn_items = circle_func(
-                        item.coordinate, self.point_size, 0.0, 2.0 * math.pi,
+                        coordinate_E, self.point_size, 0.0, 2.0 * math.pi,
                         True, self.secondary_selection_color,
                         self.secondary_selection_color,
                         self.selection_border_size)
             else:
-                item.drawn_items = circle_func(item.coordinate,
-                                               self.point_size, 0.0,
-                                               2.0 * math.pi, True,
+                item.drawn_items = circle_func(coordinate_E, self.point_size,
+                                               0.0, 2.0 * math.pi, True,
                                                self.colors[item.color],
                                                self.colors[item.color],
                                                self.selection_border_size)
 
-            converted_points = []
+            converted_points_E = []
 
-            if len(item.circle_points) > 0:
-                converted_points = item.circle_points
+            if len(item.circle_points_E) > 0:
+                converted_points_E = item.circle_points_E
             else:
                 circle_size = item.radius
-                native_point = self.hyperbolic_coordinate_from_canvas_point(
-                    item.coordinate)
-
-                circle_points = native_coordinates.render_points_for_circle_with_center_and_radius(
-                    native_point, circle_size)
-                for i in range(len(circle_points)):
-                    circle_point = circle_points[i]
-                    converted_point = circle_point.to_euclidean_coordinate_with_scale(
-                        self.scale)
-                    euclidean_circle_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                        center, converted_point)
-                    converted_points.append(euclidean_circle_point)
-                item.circle_points = converted_points
+                circle_points_H = native_coordinates.render_points_for_circle_with_center_and_radius(
+                    item.coordinate_H, circle_size)
+                for i in range(len(circle_points_H)):
+                    circle_point_H = circle_points_H[i]
+                    circle_point_E = self.canvas_point_from_hyperbolic_coordinate(
+                        circle_point_H)
+                    converted_points_E.append(circle_point_E)
+                item.circle_points_E = converted_points_E
 
             circle_color = self.colors[item.color]
 
             if should_highlight_primary_selection:
                 circle_color = self.secondary_selection_color
 
-            item.drawn_items += path_func(converted_points, True, circle_color,
-                                          2.0)
+            item.drawn_items += path_func(converted_points_E, True,
+                                          circle_color, 2.0)
 
-    def draw_points(self, items, selected_nodes, center, circle_func):
+    def draw_points(self, items, selected_nodes, center_E, circle_func):
         drawn_point_items = []
         for index, item in enumerate(items):
             if is_circle_item(item):
@@ -381,23 +390,25 @@ class drawer:
             if item.drawn_items:
                 continue
 
+            coordinate_E = self.canvas_point_from_hyperbolic_coordinate(
+                item.coordinate_H)
+
             if index in selected_nodes:
                 if selected_nodes[len(selected_nodes) - 1] == index:
                     item.drawn_items = circle_func(
-                        item.coordinate, self.point_size, 0.0, 2.0 * math.pi,
+                        coordinate_E, self.point_size, 0.0, 2.0 * math.pi,
                         True, self.primary_selection_color,
                         self.primary_selection_color,
                         self.selection_border_size)
                 else:
                     item.drawn_items = circle_func(
-                        item.coordinate, self.point_size, 0.0, 2.0 * math.pi,
+                        coordinate_E, self.point_size, 0.0, 2.0 * math.pi,
                         True, self.secondary_selection_color,
                         self.secondary_selection_color,
                         self.selection_border_size)
             else:
-                item.drawn_items = circle_func(item.coordinate,
-                                               self.point_size, 0.0,
-                                               2.0 * math.pi, True,
+                item.drawn_items = circle_func(coordinate_E, self.point_size,
+                                               0.0, 2.0 * math.pi, True,
                                                self.colors[item.color],
                                                self.colors[item.color],
                                                self.selection_border_size)
@@ -406,7 +417,7 @@ class drawer:
 
         return drawn_point_items
 
-    def draw_edges(self, edges, items, center, path_func):
+    def draw_edges(self, edges, items, center_E, path_func):
         drawn_edge_items = []
 
         # Drawing the edges
@@ -422,32 +433,25 @@ class drawer:
             if item1.color == item2.color:
                 color = self.colors[item1.color]
 
-            relative_point1 = euclidean_coordinates.coordinate_relative_to_coordinate(
-                item1.coordinate, center)
-            native_point1 = relative_point1.to_native_coordinate_with_scale(
-                self.scale)
-            relative_point2 = euclidean_coordinates.coordinate_relative_to_coordinate(
-                item2.coordinate, center)
-            native_point2 = relative_point2.to_native_coordinate_with_scale(
-                self.scale)
+            point1_H = item1.coordinate_H
+            point2_H = item2.coordinate_H
 
-            converted_points = []
-            if len(edge.edge_points) > 0:
-                converted_points = edge.edge_points
+            converted_points_E = []
+            if len(edge.edge_points_E) > 0:
+                converted_points_E = edge.edge_points_E
             else:
                 line_points = native_coordinates.render_points_for_line_from_to(
-                    native_point1, native_point2)
+                    point1_H, point2_H)
 
                 for i in range(len(line_points)):
-                    converted_point = line_points[
-                        i].to_euclidean_coordinate_with_scale(self.scale)
-                    euclidean_line_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                        center, converted_point)
-                    converted_points.append(euclidean_line_point)
+                    line_point_H = line_points[i]
+                    line_point_E = self.canvas_point_from_hyperbolic_coordinate(
+                        line_point_H)
+                    converted_points_E.append(line_point_E)
 
-                edge.edge_points = converted_points
+                edge.edge_points_E = converted_points_E
 
-            edge.drawn_items = path_func(converted_points, False, color, 2.0)
+            edge.drawn_items = path_func(converted_points_E, False, color, 2.0)
 
             drawn_edge_items += edge.drawn_items
 
@@ -460,42 +464,36 @@ class drawer:
             if edge.drawn_hypercycle_items:
                 continue
 
-            hypercycle_upper_points = []
-            hypercycle_lower_points = []
+            hypercycle_upper_points_E = []
+            hypercycle_lower_points_E = []
 
-            if not edge.hypercycle_points is None:
-                hypercycle_upper_points = edge.hypercycle_points.upper_samples
-                hypercycle_lower_points = edge.hypercycle_points.lower_samples
+            if edge.hypercycle_upper_points_E is not None and edge.hypercycle_lower_points_E is not None:
+                hypercycle_upper_points_E = edge.hypercycle_upper_points_E
+                hypercycle_lower_points_E = edge.hypercycle_lower_points_E
             else:
-                hypercycle_points = native_coordinates.render_points_for_hypercycle_around_points(
-                    native_point1, native_point2, edge.hypercycle_radius)
+                hypercycle_upper_points_H, hypercycle_lower_points_H = native_coordinates.render_points_for_hypercycle_around_points(
+                    point1_H, point2_H, edge.hypercycle_radius)
 
                 # The hypercycle_points are in native coordinates, now we
                 # have to convert them to the canvas.
-                for i in range(len(hypercycle_points.upper_samples)):
-                    upper_sample = hypercycle_points.upper_samples[i]
-                    lower_sample = hypercycle_points.lower_samples[i]
+                for i in range(len(hypercycle_upper_points_H)):
+                    upper_sample_H = hypercycle_upper_points_H[i]
+                    lower_sample_H = hypercycle_lower_points_H[i]
 
-                    converted_upper_point = upper_sample.to_euclidean_coordinate_with_scale(
-                        self.scale)
-                    euclidean_upper_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                        center, converted_upper_point)
+                    upper_sample_E = self.canvas_point_from_hyperbolic_coordinate(
+                        upper_sample_H)
+                    lower_sample_E = self.canvas_point_from_hyperbolic_coordinate(
+                        lower_sample_H)
 
-                    converted_lower_point = lower_sample.to_euclidean_coordinate_with_scale(
-                        self.scale)
-                    euclidean_lower_point = euclidean_coordinates.coordinate_relative_to_coordinate(
-                        center, converted_lower_point)
+                    hypercycle_upper_points_E.append(upper_sample_E)
+                    hypercycle_lower_points_E.append(lower_sample_E)
 
-                    hypercycle_upper_points.append(euclidean_upper_point)
-                    hypercycle_lower_points.append(euclidean_lower_point)
+                edge.hypercycle_upper_points_E = hypercycle_upper_points_E
+                edge.hypercycle_lower_points_E = hypercycle_lower_points_E
 
-                edge.hypercycle_points = native_coordinates.hypercycle_points(
-                    upper_samples=hypercycle_upper_points,
-                    lower_samples=hypercycle_lower_points)
-
-            drawn_upper_items = path_func(hypercycle_upper_points, False,
+            drawn_upper_items = path_func(hypercycle_upper_points_E, False,
                                           color, 2.0)
-            drawn_lower_items = path_func(hypercycle_lower_points, False,
+            drawn_lower_items = path_func(hypercycle_lower_points_E, False,
                                           color, 2.0)
             edge.drawn_hypercycle_items = drawn_upper_items + drawn_lower_items
 
@@ -503,42 +501,46 @@ class drawer:
 
         return drawn_edge_items
 
-    def draw_with_functions(self, items, edges, selected_nodes, mouse_location,
-                            path_func, circle_func):
-        center = euclidean_coordinates.euclidean_coordinate(
+    def draw_with_functions(self, items, edges, selected_nodes,
+                            mouse_location_E, path_func, circle_func):
+        center_E = euclidean_coordinates.euclidean_coordinate(
             self.canvas.winfo_width() / 2.0,
             self.canvas.winfo_height() / 2.0)
 
         # Drawing the origin
-        circle_func(center, self.point_size, 0.0, 2.0 * math.pi, True, "blue",
-                    "blue", 1.0)
+        if self.drawn_origin_items is None:
+            self.drawn_origin_items = circle_func(center_E, self.point_size,
+                                                  0.0, 2.0 * math.pi, True,
+                                                  "blue", "blue", 1.0)
 
         # Draw the regular grid
-        self.draw_regular_grid(center, path_func, circle_func)
+        self.draw_regular_grid(center_E, path_func, circle_func)
 
         # Draw the embedded graph
-        self.draw_embedded_graph(center, path_func, circle_func)
+        self.draw_embedded_graph(center_E, path_func, circle_func)
 
         # Draw the grid
-        self.draw_grid(center, path_func, circle_func)
+        self.draw_grid(center_E, path_func, circle_func)
 
         # Drawing the circles
-        self.draw_circles(items, selected_nodes, center, mouse_location,
+        self.draw_circles(items, selected_nodes, center_E, mouse_location_E,
                           path_func, circle_func)
 
         # Drawing the points.
-        self.draw_points(items, selected_nodes, center, circle_func)
+        self.draw_points(items, selected_nodes, center_E, circle_func)
 
         # Drawing the edges.
-        self.draw_edges(edges, items, center, path_func)
+        self.draw_edges(edges, items, center_E, path_func)
 
-    def draw_circle(self, center, radius, start_angle, end_angle, is_clockwise,
-                    fill_color, border_color, width):
+    # Takes a center coordinate (Euclidean) and a radius and draws a circle
+    # with the passed radius around the passed center.
+    def draw_circle(self, center_E, radius, start_angle, end_angle,
+                    is_clockwise, fill_color, border_color, width):
 
         upper_left = euclidean_coordinates.euclidean_coordinate(
-            center.x - radius, center.y - radius)
+            center_E.x - radius, center_E.y - radius)
         lower_right = euclidean_coordinates.euclidean_coordinate(
-            center.x + radius, center.y + radius)
+            center_E.x + radius, center_E.y + radius)
 
         arcs = []
 
@@ -642,31 +644,118 @@ class drawer:
 
         return arcs
 
-    def draw_path(self, points, is_closed, color, width):
-        path_points = []
-        for i in range(1, len(points)):
-            path_point = self.draw_line_from_coordinate_to_coordinate(
-                points[i - 1], points[i], color, width)
-            path_points.append(path_point)
+    # Takes a set of points (Euclidean) and draws lines from point i to i+1.
+    def draw_path(self, points_E, is_closed, color, width):
+        path_points_E = []
+        for i in range(1, len(points_E)):
+            path_point_E = self.draw_line_from_coordinate_to_coordinate(
+                points_E[i - 1], points_E[i], color, width)
+            path_points_E.append(path_point_E)
 
         if is_closed:
-            path_point = self.draw_line_from_coordinate_to_coordinate(
-                points[-1], points[0], color, width)
-            path_points.append(path_point)
+            path_point_E = self.draw_line_from_coordinate_to_coordinate(
+                points_E[-1], points_E[0], color, width)
+            path_points_E.append(path_point_E)
 
-        return path_points
+        return path_points_E
 
+    # Draws a line from coord1 to coord2 (Both Euclidean).
     def draw_line_from_coordinate_to_coordinate(self,
-                                                coord1,
-                                                coord2,
+                                                coord1_E,
+                                                coord2_E,
                                                 color,
                                                 width=1):
-        return self.canvas.create_line(coord1.x,
-                                       coord1.y,
-                                       coord2.x,
-                                       coord2.y,
+        return self.canvas.create_line(coord1_E.x,
+                                       coord1_E.y,
+                                       coord2_E.x,
+                                       coord2_E.y,
                                        fill=color,
                                        width=width)
 
     def clear(self):
         self.canvas.delete("all")
+
+    def mark_item_for_redraw(self, item):
+        if not item.drawn_items:
+            return
+
+        # If the item is a circle, its circle points need to move now.
+        if drawing.is_circle_item(item):
+            self.mark_circle_for_redraw(item)
+        else:
+            self.mark_point_for_redraw(item)
+
+    def mark_edge_for_redraw(self, edge):
+        edge.edge_points_E = []
+
+        if edge.drawn_items:
+            for drawn_item in edge.drawn_items:
+                self.canvas.delete(drawn_item)
+            edge.drawn_items = None
+
+        if edge.drawn_hypercycle_items:
+            for drawn_item in edge.drawn_hypercycle_items:
+                self.canvas.delete(drawn_item)
+                edge.drawn_hypercycle_items = None
+        edge.hypercycle_upper_points_E = None
+        edge.hypercycle_lower_points_E = None
+
+    def mark_point_for_redraw(self, point):
+        for drawn_item in point.drawn_items:
+            self.canvas.delete(drawn_item)
+        point.drawn_items = None
+
+    def mark_circle_for_redraw(self, circle):
+        for drawn_item in circle.drawn_items:
+            self.canvas.delete(drawn_item)
+        circle.drawn_items = None
+        circle.circle_points_E = []
+
+    def mark_all_items_for_redraw(self):
+        for item in self.items:
+            self.mark_item_for_redraw(item)
+
+        for edge in self.edges:
+            self.mark_edge_for_redraw(edge)
+
+        self.mark_origin_for_redraw()
+
+        self.mark_grid_for_redraw()
+        self.mark_regular_grid_for_redraw()
+        self.mark_embedded_graph_for_redraw()
+
+    def mark_origin_for_redraw(self):
+        if not self.drawn_origin_items:
+            return
+
+        for drawn_item in self.drawn_origin_items:
+            self.canvas.delete(drawn_item)
+
+        self.drawn_origin_items = None
+
+    def mark_regular_grid_for_redraw(self):
+        if not self.regular_grid_items:
+            return
+
+        for drawn_item in self.regular_grid_items:
+            self.canvas.delete(drawn_item)
+
+        self.regular_grid_items = None
+
+    def mark_grid_for_redraw(self):
+        if not self.grid_items:
+            return
+
+        for drawn_item in self.grid_items:
+            self.canvas.delete(drawn_item)
+
+        self.grid_items = None
+
+    def mark_embedded_graph_for_redraw(self):
+        if not self.embedded_graph_items:
+            return
+
+        for drawn_item in self.embedded_graph_items:
+            self.canvas.delete(drawn_item)
+
+        self.embedded_graph_items = None

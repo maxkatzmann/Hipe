@@ -20,9 +20,6 @@ import math
 import euclidean_coordinates
 import collections
 
-hypercycle_points = collections.namedtuple("hypercycle_points",
-                                           ["upper_samples", "lower_samples"])
-
 # Polar Coordinates
 
 
@@ -122,7 +119,7 @@ def coordinate_translated_along_x_axis_by_hyperbolic_distance(
 
     else:
         newAngle = 0.0
-        newRadius = fabs(coordinate.r + distance)
+        newRadius = math.fabs(coordinate.r + distance)
 
         if distance < 0.0:
             if fabs(distance) > coordinate.r:
@@ -357,5 +354,4 @@ def render_points_for_hypercycle_around_points(point1, point2, radius):
         upper_sample_points[index] = final_upper
         lower_sample_points[index] = final_lower
 
-    return hypercycle_points(upper_samples=upper_sample_points,
-                             lower_samples=lower_sample_points)
+    return upper_sample_points, lower_sample_points

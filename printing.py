@@ -21,8 +21,8 @@ import native_coordinates
 import math
 import drawing
 
-class printer:
 
+class printer:
     def __init__(self, drawer):
         self.drawer = drawer
 
@@ -38,22 +38,31 @@ class printer:
               "<layer name=\"alpha\"/>\n" +\
               "<view layers=\"alpha\" active=\"alpha\"/>\n")
 
-        self.drawer.draw_with_functions(items,
-                                        edges,
-                                        selected_nodes,
-                                        None,
+        # To make sure that everything is actually drawn, mark everything for redraw.
+        self.drawer.mark_all_items_for_redraw()
+        self.drawer.draw_with_functions(items, edges, selected_nodes, None,
                                         self.print_ipe_path,
                                         self.print_ipe_circle)
 
         print("</page>\n" +\
               "</ipe>")
 
-    def print_ipe_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
+    def print_ipe_circle(self, center, radius, start_angle, end_angle,
+                         is_clockwise, fill_color, border_color, width):
 
         if len(fill_color) > 0:
-            print("<path stroke=\"" + str(border_color) + "\" fill=\"" + str(fill_color) + "\"> " + str(radius) + " 0 0 " + str(radius) + " " + str(center.x) + " " + str(center.y) + " e </path>")
+            print("<path stroke=\"" + str(border_color) + "\" fill=\"" +
+                  str(fill_color) + "\"> " + str(radius) + " 0 0 " +
+                  str(radius) + " " + str(center.x) + " " + str(center.y) +
+                  " e </path>")
         else:
-            print("<path stroke=\"" + str(border_color) + "\"> " + str(radius) + " 0 0 " + str(radius) + " " + str(center.x) + " " + str(center.y) + " e </path>")
+            print("<path stroke=\"" + str(border_color) + "\"> " +
+                  str(radius) + " 0 0 " + str(radius) + " " + str(center.x) +
+                  " " + str(center.y) + " e </path>")
+
+        # Path and circle funcs are expected to return arrays. In this case we
+        # have nothing to return.
+        return []
 
     def print_ipe_path(self, points, is_closed, color, width):
         print("<path stroke=\"" + color + "\">")
@@ -66,6 +75,10 @@ class printer:
             print("h")
         print("</path>")
 
+        # Path and circle funcs are expected to return arrays. In this case we
+        # have nothing to return.
+        return []
+
     ### SVG ###
 
     def print_svg(self, items, edges, selected_nodes):
@@ -77,31 +90,48 @@ class printer:
               "xmlns:ev=\"http://www.w3.org/2001/xml-events\"\nversion=\"1.1\" " +\
               "baseProfile=\"full\"\nwidth=\"" + str(self.drawer.canvas.winfo_width()) + "\" height=\"" + str(self.drawer.canvas.winfo_height()) + "\">\n\n")
 
-        self.drawer.draw_with_functions(items,
-                                        edges,
-                                        selected_nodes,
-                                        None,
+        # To make sure that everything is actually drawn, mark everything for redraw.
+        self.drawer.mark_all_items_for_redraw()
+        self.drawer.draw_with_functions(items, edges, selected_nodes, None,
                                         self.print_svg_path,
                                         self.print_svg_circle)
 
         print("\n</svg>\n")
 
-    def print_svg_circle(self, center, radius, start_angle, end_angle, is_clockwise, fill_color, border_color, width):
+    def print_svg_circle(self, center, radius, start_angle, end_angle,
+                         is_clockwise, fill_color, border_color, width):
         if len(fill_color) > 0:
-            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"" + str(fill_color) + "\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
+            print("<circle cx=\"" + str(center.x) + "\" cy=\"" +
+                  str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"" +
+                  str(fill_color) + "\" stroke=\"" + str(border_color) +
+                  "\" stroke-width=\"" + str(width) + "\"/>\n")
         else:
-            print("<circle cx=\"" + str(center.x) + "\" cy=\"" + str(center.y) + "\" r=\"" + str(radius) + "\" fill=\"none\" stroke=\"" + str(border_color) + "\" stroke-width=\"" + str(width) + "\"/>\n")
+            print("<circle cx=\"" + str(center.x) + "\" cy=\"" +
+                  str(center.y) + "\" r=\"" + str(radius) +
+                  "\" fill=\"none\" stroke=\"" + str(border_color) +
+                  "\" stroke-width=\"" + str(width) + "\"/>\n")
+
+        # Path and circle funcs are expected to return arrays. In this case we
+        # have nothing to return.
+        return []
 
     def print_svg_path(self, points, is_closed, color, width):
         path_string = "<path d =\""
 
         if len(points) > 0:
-            path_string += "M " + str(points[0].x) + "," + str(points[0].y) + " "
+            path_string += "M " + str(points[0].x) + "," + str(
+                points[0].y) + " "
 
             for index in range(1, len(points)):
-                path_string += "L " + str(points[index].x) + "," + str(points[index].y) + " "
+                path_string += "L " + str(points[index].x) + "," + str(
+                    points[index].y) + " "
         if is_closed:
             path_string += "Z"
 
-        path_string += "\" stroke = \"" + color + "\" stroke-width = \"" + str(width) + "\" fill=\"none\"/>"
+        path_string += "\" stroke = \"" + color + "\" stroke-width = \"" + str(
+            width) + "\" fill=\"none\"/>"
         print(path_string)
+
+        # Path and circle funcs are expected to return arrays. In this case we
+        # have nothing to return.
+        return []
